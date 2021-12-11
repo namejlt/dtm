@@ -17,6 +17,7 @@ import (
 	"github.com/bwmarrin/snowflake"
 	"github.com/yedf/dtm/common"
 	"github.com/yedf/dtm/dtmcli/dtmimp"
+	"github.com/yedf/dtm/dtmsvr/storage"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -34,6 +35,10 @@ var config = &common.DtmConfig
 
 func dbGet() *common.DB {
 	return common.DbGet(config.DB)
+}
+
+func getStore() storage.Store {
+	return storage.GetStore()
 }
 
 // TransProcessedTestChan only for test usage. when transaction processed once, write gid to this chan

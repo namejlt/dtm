@@ -22,13 +22,13 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func (t *TransGlobal) touch(db *common.DB, ctype cronType) *gorm.DB {
+func (t *TransGlobal) touch(ctype cronType) *gorm.DB {
 	t.lastTouched = time.Now()
 	updates := t.setNextCron(ctype)
-	return db.Model(&TransGlobal{}).Where("gid=?", t.Gid).Select(updates).Updates(t)
+	return dbGet().Model(&TransGlobal{}).Where("gid=?", t.Gid).Select(updates).Updates(t)
 }
 
-func (t *TransGlobal) changeStatus(db *common.DB, status string) *gorm.DB {
+func (t *TransGlobal) changeStatus(status string) *gorm.DB {
 	old := t.Status
 	t.Status = status
 	updates := t.setNextCron(cronReset)
@@ -41,15 +41,15 @@ func (t *TransGlobal) changeStatus(db *common.DB, status string) *gorm.DB {
 		t.RollbackTime = &now
 		updates = append(updates, "rollback_time")
 	}
-	dbr := db.Must().Model(&TransGlobal{}).Where("status=? and gid=?", old, t.Gid).Select(updates).Updates(t)
+	dbr := dbGet().Must().Model(&TransGlobal{}).Where("status=? and gid=?", old, t.Gid).Select(updates).Updates(t)
 	checkAffected(dbr)
 	return dbr
 }
 
-func (t *TransGlobal) changeBranchStatus(db *common.DB, b *TransBranch, status string) {
+func (t *TransGlobal) changeBranchStatus(b *TransBranch, status string) {
 	now := time.Now()
 	if common.DtmConfig.UpdateBranchSync > 0 || t.updateBranchSync {
-		err := db.Transaction(func(tx *gorm.DB) error {
+		err := dbGet().Transaction(func(tx *gorm.DB) error {
 			dbr := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Model(&TransGlobal{}).Where("gid=? and status=?", t.Gid, t.Status).Find(&[]TransGlobal{})
 			checkAffected(dbr) // check TransGlobal is not modified
 			dbr = tx.Model(b).Updates(map[string]interface{}{
@@ -136,20 +136,20 @@ func (t *TransGlobal) getBranchResult(branch *TransBranch) (string, error) {
 	return "", fmt.Errorf("http result should contains SUCCESS|FAILURE|ONGOING. grpc error should return nil|Aborted with message(FAILURE|ONGOING). \nrefer to: https://dtm.pub/summary/arch.html#http\nunkown result will be retried: %s", body)
 }
 
-func (t *TransGlobal) execBranch(db *common.DB, branch *TransBranch) error {
+func (t *TransGlobal) execBranch(branch *TransBranch) error {
 	status, err := t.getBranchResult(branch)
 	if status != "" {
-		t.changeBranchStatus(db, branch, status)
+		t.changeBranchStatus(branch, status)
 	}
 	branchMetrics(t, branch, status == dtmcli.StatusSucceed)
 	// if time pass 1500ms and NextCronInterval is not default, then reset NextCronInterval
 	if err == nil && time.Since(t.lastTouched)+NowForwardDuration >= 1500*time.Millisecond ||
 		t.NextCronInterval > config.RetryInterval && t.NextCronInterval > t.RetryInterval {
-		t.touch(db, cronReset)
+		t.touch(cronReset)
 	} else if err == dtmimp.ErrOngoing {
-		t.touch(db, cronKeep)
+		t.touch(cronKeep)
 	} else if err != nil {
-		t.touch(db, cronBackoff)
+		t.touch(cronBackoff)
 	}
 	return err
 }

@@ -69,7 +69,7 @@ func (*TransBranch) TableName() string {
 
 type transProcessor interface {
 	GenBranches() []TransBranch
-	ProcessOnce(db *common.DB, branches []TransBranch) error
+	ProcessOnce(branches []TransBranch) error
 }
 
 type processorCreator func(*TransGlobal) transProcessor

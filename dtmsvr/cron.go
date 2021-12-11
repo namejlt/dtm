@@ -30,7 +30,7 @@ func CronTransOnce() (gid string) {
 	}
 	gid = trans.Gid
 	trans.WaitResult = true
-	trans.Process(dbGet())
+	trans.Process()
 	return
 }
 

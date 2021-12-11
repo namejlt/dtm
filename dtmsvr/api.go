@@ -15,26 +15,25 @@ import (
 )
 
 func svcSubmit(t *TransGlobal) (interface{}, error) {
-	db := dbGet()
 	t.Status = dtmcli.StatusSubmitted
-	err := t.saveNew(db)
+	err := t.saveNew()
 
 	if err == errUniqueConflict {
-		dbt := transFromDb(db.DB, t.Gid, false)
+		dbt := transFromDb(dbGet().DB, t.Gid, false)
 		if dbt.Status == dtmcli.StatusPrepared {
 			updates := t.setNextCron(cronReset)
-			dbr := db.Must().Model(&TransGlobal{}).Where("gid=? and status=?", t.Gid, dtmcli.StatusPrepared).Select(append(updates, "status")).Updates(t)
+			dbr := dbGet().Must().Model(&TransGlobal{}).Where("gid=? and status=?", t.Gid, dtmcli.StatusPrepared).Select(append(updates, "status")).Updates(t)
 			checkAffected(dbr)
 		} else if dbt.Status != dtmcli.StatusSubmitted {
 			return map[string]interface{}{"dtm_result": dtmcli.ResultFailure, "message": fmt.Sprintf("current status '%s', cannot sumbmit", dbt.Status)}, nil
 		}
 	}
-	return t.Process(db), nil
+	return t.Process(), nil
 }
 
 func svcPrepare(t *TransGlobal) (interface{}, error) {
 	t.Status = dtmcli.StatusPrepared
-	err := t.saveNew(dbGet())
+	err := t.saveNew()
 	if err == errUniqueConflict {
 		dbt := transFromDb(dbGet().DB, t.Gid, false)
 		if dbt.Status != dtmcli.StatusPrepared {
@@ -45,13 +44,12 @@ func svcPrepare(t *TransGlobal) (interface{}, error) {
 }
 
 func svcAbort(t *TransGlobal) (interface{}, error) {
-	db := dbGet()
-	dbt := transFromDb(db.DB, t.Gid, false)
+	dbt := transFromDb(dbGet().DB, t.Gid, false)
 	if t.TransType != "xa" && t.TransType != "tcc" || dbt.Status != dtmcli.StatusPrepared && dbt.Status != dtmcli.StatusAborting {
 		return map[string]interface{}{"dtm_result": dtmcli.ResultFailure, "message": fmt.Sprintf("trans type: '%s' current status '%s', cannot abort", dbt.TransType, dbt.Status)}, nil
 	}
-	dbt.changeStatus(db, dtmcli.StatusAborting)
-	return dbt.Process(db), nil
+	dbt.changeStatus(dtmcli.StatusAborting)
+	return dbt.Process(), nil
 }
 
 func svcRegisterBranch(branch *TransBranch, data map[string]string) (ret interface{}, rerr error) {

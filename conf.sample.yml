@@ -1,19 +1,19 @@
-DB:
-  driver: 'mysql'
-  host: 'localhost'
-  user: 'root'
-  password: ''
-  port: '3306'
+# DB:
+#   driver: 'redis'
+#   host: 'localhost'
+#   user: ''
+#   password: ''
+#   port: '6379'
 
-  # driver: 'postgres'
-  # host: 'localhost'
-  # user: 'postgres'
-  # password: 'mysecretpassword'
-  # port: '5432'
+# driver: 'postgres'
+# host: 'localhost'
+# user: 'postgres'
+# password: 'mysecretpassword'
+# port: '5432'
 
-  # max_open_conns: 'dbmaxopenconns'
-  # max_idle_conns: 'dbmaxidleconns'
-  # conn_max_life_time: 'dbconnmaxlifetime'
+# max_open_conns: 'dbmaxopenconns'
+# max_idle_conns: 'dbmaxidleconns'
+# conn_max_life_time: 'dbconnmaxlifetime'
 # MicroService:
 #   Driver: 'dtm-driver-gozero' # name of the driver to handle register/discover
 #   Target: 'etcd://localhost:2379/dtmservice' # register dtm server to this url
@@ -27,3 +27,10 @@ DB:
 # TransCronInterval: 3 # the interval to poll unfinished global transaction for every dtm process
 # TimeoutToFail: 35 # timeout for XA, TCC to fail. saga's timeout default to infinite, which can be overwritten in saga options
 # RetryInterval: 10 # the subtrans branch will be retried after this interval
+
+DB:
+  driver: 'mysql'
+  host: 'localhost'
+  user: 'root'
+  password: ''
+  port: '3306'

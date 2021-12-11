@@ -17,23 +17,23 @@ import (
 )
 
 // Process process global transaction once
-func (t *TransGlobal) Process(db *common.DB) map[string]interface{} {
-	r := t.process(db)
+func (t *TransGlobal) Process() map[string]interface{} {
+	r := t.process()
 	transactionMetrics(t, r["dtm_result"] == dtmcli.ResultSuccess)
 	return r
 }
 
-func (t *TransGlobal) process(db *common.DB) map[string]interface{} {
+func (t *TransGlobal) process() map[string]interface{} {
 	if t.Options != "" {
 		dtmimp.MustUnmarshalString(t.Options, &t.TransOptions)
 	}
 
 	if !t.WaitResult {
-		go t.processInner(db)
+		go t.processInner()
 		return dtmcli.MapSuccess
 	}
 	submitting := t.Status == dtmcli.StatusSubmitted
-	err := t.processInner(db)
+	err := t.processInner()
 	if err != nil {
 		return map[string]interface{}{"dtm_result": dtmcli.ResultFailure, "message": err.Error()}
 	}
@@ -43,7 +43,7 @@ func (t *TransGlobal) process(db *common.DB) map[string]interface{} {
 	return dtmcli.MapSuccess
 }
 
-func (t *TransGlobal) processInner(db *common.DB) (rerr error) {
+func (t *TransGlobal) processInner() (rerr error) {
 	defer handlePanic(&rerr)
 	defer func() {
 		if rerr != nil {
@@ -57,14 +57,14 @@ func (t *TransGlobal) processInner(db *common.DB) (rerr error) {
 	}()
 	dtmimp.Logf("processing: %s status: %s", t.Gid, t.Status)
 	branches := []TransBranch{}
-	db.Must().Where("gid=?", t.Gid).Order("id asc").Find(&branches)
+	dbGet().Must().Where("gid=?", t.Gid).Order("id asc").Find(&branches)
 	t.lastTouched = time.Now()
-	rerr = t.getProcessor().ProcessOnce(db, branches)
+	rerr = t.getProcessor().ProcessOnce(branches)
 	return
 }
 
-func (t *TransGlobal) saveNew(db *common.DB) error {
-	return db.Transaction(func(db1 *gorm.DB) error {
+func (t *TransGlobal) saveNew() error {
+	return dbGet().Transaction(func(db1 *gorm.DB) error {
 		db := &common.DB{DB: db1}
 		t.setNextCron(cronReset)
 		t.Options = dtmimp.MustMarshalString(t.TransOptions)
