@@ -26,10 +26,6 @@ var e2p = dtmimp.E2P
 
 var config = &common.DtmConfig
 
-func dbGet() *common.DB {
-	return common.DbGet(config.DB)
-}
-
 func getStore() *storage.SqlStore {
 	return storage.GetStore()
 }
