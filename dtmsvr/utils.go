@@ -7,13 +7,9 @@
 package dtmsvr
 
 import (
-	"encoding/hex"
-	"fmt"
-	"net"
-	"strings"
 	"time"
 
-	"github.com/bwmarrin/snowflake"
+	"github.com/google/uuid"
 	"github.com/yedf/dtm/common"
 	"github.com/yedf/dtm/dtmcli/dtmimp"
 	"github.com/yedf/dtm/dtmsvr/storage"
@@ -41,36 +37,9 @@ func getStore() *storage.SqlStore {
 // TransProcessedTestChan only for test usage. when transaction processed once, write gid to this chan
 var TransProcessedTestChan chan string = nil
 
-var gNode *snowflake.Node = nil
-
-func init() {
-	node, err := snowflake.NewNode(1)
-	e2p(err)
-	gNode = node
-}
-
-// GenGid generate gid, use ip + snowflake
+// GenGid generate gid, use uuid
 func GenGid() string {
-	return getOneHexIP() + "_" + gNode.Generate().Base58()
-}
-
-func getOneHexIP() string {
-	addrs, err := net.InterfaceAddrs()
-	if err == nil {
-		for _, address := range addrs {
-			if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
-				ip := ipnet.IP.To4().String()
-				ns := strings.Split(ip, ".")
-				r := []byte{}
-				for _, n := range ns {
-					r = append(r, byte(dtmimp.MustAtoi(n)))
-				}
-				return hex.EncodeToString(r)
-			}
-		}
-	}
-	fmt.Printf("err is: %s", err.Error())
-	return "" // 获取不到IP，则直接返回空
+	return uuid.NewString()
 }
 
 // transFromDb construct trans from db
