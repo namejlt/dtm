@@ -28,7 +28,7 @@ func (t *TransGlobal) touch(ctype cronType) *gorm.DB {
 	return dbGet().Model(&TransGlobal{}).Where("gid=?", t.Gid).Select(updates).Updates(t)
 }
 
-func (t *TransGlobal) changeStatus(status string) *gorm.DB {
+func (t *TransGlobal) changeStatus(status string) {
 	old := t.Status
 	t.Status = status
 	updates := t.setNextCron(cronReset)
@@ -41,9 +41,7 @@ func (t *TransGlobal) changeStatus(status string) *gorm.DB {
 		t.RollbackTime = &now
 		updates = append(updates, "rollback_time")
 	}
-	dbr := dbGet().Must().Model(&TransGlobal{}).Where("status=? and gid=?", old, t.Gid).Select(updates).Updates(t)
-	checkAffected(dbr)
-	return dbr
+	getStore().ChangeGlobalStatus(&t.TransGlobalStore, old, updates)
 }
 
 func (t *TransGlobal) changeBranchStatus(b *TransBranch, status string) {

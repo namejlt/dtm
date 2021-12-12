@@ -1,7 +1,12 @@
 package storage
 
 import (
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
 	"github.com/yedf/dtm/common"
+	"github.com/yedf/dtm/dtmcli/dtmimp"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -41,6 +46,28 @@ func (s *SqlStore) SaveNewTrans(global *TransGlobalStore, branches []TransBranch
 		}
 		return nil
 	})
+}
+
+func (s *SqlStore) ChangeGlobalStatus(global *TransGlobalStore, oldStatus string, updates []string) {
+	dbGet().Must().Model(global).Where("status=? and gid=?", oldStatus, global.Gid).Select(updates).Updates(global)
+}
+
+func (s *SqlStore) LockOneGlobalTrans(global *TransGlobalStore, expireIn time.Duration, updates []string) error {
+	db := dbGet()
+	getTime := dtmimp.GetDBSpecial().TimestampAdd
+	expire := int(expireIn / time.Second)
+	whereTime := fmt.Sprintf("next_cron_time < %s and update_time < %s", getTime(expire), getTime(expire-3))
+	// 这里next_cron_time需要限定范围，否则数据量累计之后，会导致查询变慢
+	// 限定update_time < now - 3，否则会出现刚被这个应用取出，又被另一个取出
+	owner := uuid.NewString()
+	dbr := db.Must().Model(global).
+		Where(whereTime+"and status in ('prepared', 'aborting', 'submitted')").Limit(1).Update("owner", owner)
+	if dbr.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	dbr = db.Must().Where("owner=?", owner).Find(global)
+	db.Must().Model(global).Select(updates).Updates(global)
+	return nil
 }
 
 func lockTransGlobal(db *gorm.DB, gid string, status string) error {
