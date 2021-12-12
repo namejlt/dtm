@@ -21,9 +21,7 @@ func svcSubmit(t *TransGlobal) (interface{}, error) {
 	if err == storage.ErrUniqueConflict {
 		dbt := transFromDb(t.Gid)
 		if dbt.Status == dtmcli.StatusPrepared {
-			updates := t.setNextCron(cronReset)
-			dbr := dbGet().Must().Model(&TransGlobal{}).Where("gid=? and status=?", t.Gid, dtmcli.StatusPrepared).Select(append(updates, "status")).Updates(t)
-			checkAffected(dbr)
+			dbt.changeStatus(t.Status)
 		} else if dbt.Status != dtmcli.StatusSubmitted {
 			return map[string]interface{}{"dtm_result": dtmcli.ResultFailure, "message": fmt.Sprintf("current status '%s', cannot sumbmit", dbt.Status)}, nil
 		}

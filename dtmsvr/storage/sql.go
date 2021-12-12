@@ -49,7 +49,8 @@ func (s *SqlStore) SaveNewTrans(global *TransGlobalStore, branches []TransBranch
 }
 
 func (s *SqlStore) ChangeGlobalStatus(global *TransGlobalStore, oldStatus string, updates []string) {
-	dbGet().Must().Model(global).Where("status=? and gid=?", oldStatus, global.Gid).Select(updates).Updates(global)
+	dbr := dbGet().Must().Model(global).Where("status=? and gid=?", oldStatus, global.Gid).Select(updates).Updates(global)
+	checkAffected(dbr)
 }
 
 func (s *SqlStore) LockOneGlobalTrans(global *TransGlobalStore, expireIn time.Duration, updates []string) error {

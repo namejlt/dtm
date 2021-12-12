@@ -7,7 +7,6 @@
 package dtmsvr
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +14,6 @@ import (
 	"github.com/yedf/dtm/dtmcli/dtmimp"
 	"github.com/yedf/dtm/dtmgrpc/dtmgimp"
 	"github.com/yedf/dtm/dtmsvr/storage"
-	"gorm.io/gorm"
 )
 
 // TransGlobal global transaction
@@ -95,10 +93,4 @@ func TransFromDtmRequest(c *dtmgimp.DtmRequest) *TransGlobal {
 		dtmimp.MustUnmarshalString(c.Steps, &r.Steps)
 	}
 	return &r
-}
-
-func checkAffected(db1 *gorm.DB) {
-	if db1.RowsAffected == 0 {
-		panic(fmt.Errorf("rows affected 0, please check for abnormal trans"))
-	}
 }
