@@ -19,13 +19,12 @@ import (
 	"github.com/yedf/dtmdriver"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"gorm.io/gorm"
 )
 
-func (t *TransGlobal) touch(ctype cronType) *gorm.DB {
+func (t *TransGlobal) touch(ctype cronType) {
 	t.lastTouched = time.Now()
 	updates := t.setNextCron(ctype)
-	return dbGet().Model(&TransGlobal{}).Where("gid=?", t.Gid).Select(updates).Updates(t)
+	getStore().TouchGlobal(&t.TransGlobalStore, updates)
 }
 
 func (t *TransGlobal) changeStatus(status string) {

@@ -53,8 +53,7 @@ func (t *TransGlobal) processInner() (rerr error) {
 		}
 	}()
 	dtmimp.Logf("processing: %s status: %s", t.Gid, t.Status)
-	branches := []TransBranch{}
-	dbGet().Must().Where("gid=?", t.Gid).Order("id asc").Find(&branches)
+	branches := getStore().GetBranches(t.Gid)
 	t.lastTouched = time.Now()
 	rerr = t.getProcessor().ProcessOnce(branches)
 	return

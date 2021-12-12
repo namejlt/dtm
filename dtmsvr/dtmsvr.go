@@ -18,7 +18,6 @@ import (
 	"github.com/yedf/dtm/examples"
 	"github.com/yedf/dtmdriver"
 	"google.golang.org/grpc"
-	"gorm.io/gorm/clause"
 
 	_ "github.com/ychensha/dtmdriver-polaris"
 	_ "github.com/yedf/dtmdriver-gozero"
@@ -85,10 +84,8 @@ func updateBranchAsync() {
 			}
 		}
 		for len(updates) > 0 {
-			dbr := dbGet().Clauses(clause.OnConflict{
-				OnConstraint: "trans_branch_op_pkey",
-				DoUpdates:    clause.AssignmentColumns([]string{"status", "finish_time", "update_time"}),
-			}).Create(updates)
+			dbr := getStore().UpdateBranches(updates, []string{"status", "finish_time", "update_time"})
+
 			dtmimp.Logf("flushed %d branch status to db. affected: %d", len(updates), dbr.RowsAffected)
 			if dbr.Error != nil {
 				dtmimp.LogRedf("async update branch status error: %v", dbr.Error)

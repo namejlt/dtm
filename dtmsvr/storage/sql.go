@@ -19,6 +19,23 @@ func (s *SqlStore) GetTransGlobal(gid string, trans *TransGlobalStore) error {
 	return wrapError(dbr.Error)
 }
 
+func (s *SqlStore) GetTransGlobals(lid int, globals interface{}) {
+	dbGet().Must().Where("id < ?", lid).Order("id desc").Limit(100).Find(globals)
+}
+
+func (s *SqlStore) GetBranches(gid string) []TransBranchStore {
+	branches := []TransBranchStore{}
+	dbGet().Must().Where("gid=?", gid).Order("id asc").Find(&branches)
+	return branches
+}
+
+func (s *SqlStore) UpdateBranches(branches []TransBranchStore, updates []string) *gorm.DB {
+	return dbGet().Clauses(clause.OnConflict{
+		OnConstraint: "trans_branch_op_pkey",
+		DoUpdates:    clause.AssignmentColumns(updates),
+	}).Create(branches)
+}
+
 func (s *SqlStore) LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore) error {
 	return dbGet().Transaction(func(tx *gorm.DB) error {
 		err := lockTransGlobal(tx, gid, status)
@@ -51,6 +68,10 @@ func (s *SqlStore) SaveNewTrans(global *TransGlobalStore, branches []TransBranch
 func (s *SqlStore) ChangeGlobalStatus(global *TransGlobalStore, oldStatus string, updates []string) {
 	dbr := dbGet().Must().Model(global).Where("status=? and gid=?", oldStatus, global.Gid).Select(updates).Updates(global)
 	checkAffected(dbr)
+}
+
+func (s *SqlStore) TouchGlobal(global *TransGlobalStore, updates []string) {
+	dbGet().Must().Model(global).Where("status=? and gid=?", global.Status, global.Gid).Select(updates).Updates(global)
 }
 
 func (s *SqlStore) LockOneGlobalTrans(global *TransGlobalStore, expireIn time.Duration, updates []string) error {

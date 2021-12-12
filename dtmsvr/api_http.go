@@ -63,8 +63,7 @@ func query(c *gin.Context) (interface{}, error) {
 		return nil, errors.New("no gid specified")
 	}
 	trans := transFromDb(gid)
-	branches := []TransBranch{}
-	dbGet().Must().Where("gid", gid).Find(&branches)
+	branches := getStore().GetBranches(gid)
 	return map[string]interface{}{"transaction": trans, "branches": branches}, nil
 }
 
@@ -75,6 +74,6 @@ func all(c *gin.Context) (interface{}, error) {
 		lid = dtmimp.MustAtoi(lastID)
 	}
 	trans := []TransGlobal{}
-	dbGet().Must().Where("id < ?", lid).Order("id desc").Limit(100).Find(&trans)
+	getStore().GetTransGlobals(lid, &trans)
 	return map[string]interface{}{"transactions": trans}, nil
 }
