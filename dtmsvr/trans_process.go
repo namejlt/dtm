@@ -9,11 +9,8 @@ package dtmsvr
 import (
 	"time"
 
-	"github.com/yedf/dtm/common"
 	"github.com/yedf/dtm/dtmcli"
 	"github.com/yedf/dtm/dtmcli/dtmimp"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // Process process global transaction once
@@ -64,26 +61,11 @@ func (t *TransGlobal) processInner() (rerr error) {
 }
 
 func (t *TransGlobal) saveNew() error {
-	return dbGet().Transaction(func(db1 *gorm.DB) error {
-		db := &common.DB{DB: db1}
-		t.setNextCron(cronReset)
-		t.Options = dtmimp.MustMarshalString(t.TransOptions)
-		if t.Options == "{}" {
-			t.Options = ""
-		}
-		dbr := db.Must().Clauses(clause.OnConflict{
-			DoNothing: true,
-		}).Create(t)
-		if dbr.RowsAffected <= 0 { // 如果这个不是新事务，返回错误
-			return errUniqueConflict
-		}
-		branches := t.getProcessor().GenBranches()
-		if len(branches) > 0 {
-			checkLocalhost(branches)
-			db.Must().Clauses(clause.OnConflict{
-				DoNothing: true,
-			}).Create(&branches)
-		}
-		return nil
-	})
+	branches := t.getProcessor().GenBranches()
+	t.setNextCron(cronReset)
+	t.Options = dtmimp.MustMarshalString(t.TransOptions)
+	if t.Options == "{}" {
+		t.Options = ""
+	}
+	return getStore().SaveNewTrans(&t.TransGlobalStore, branches)
 }

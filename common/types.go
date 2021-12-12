@@ -36,7 +36,6 @@ type dtmConfigType struct {
 	RetryInterval     int64             `yaml:"RetryInterval"`
 	DB                map[string]string `yaml:"DB"`
 	MicroService      MicroService      `yaml:"MicroService"`
-	DisableLocalhost  int64             `yaml:"DisableLocalhost"`
 	UpdateBranchSync  int64             `yaml:"UpdateBranchSync"`
 }
 
@@ -64,7 +63,6 @@ func MustLoadConfig() {
 	DtmConfig.MicroService.Driver = dtmimp.OrString(os.Getenv("MICRO_SERVICE_DRIVER"), "default")
 	DtmConfig.MicroService.Target = os.Getenv("MICRO_SERVICE_TARGET")
 	DtmConfig.MicroService.EndPoint = os.Getenv("MICRO_SERVICE_ENDPOINT")
-	DtmConfig.DisableLocalhost = getIntEnv("DISABLE_LOCALHOST", "0")
 	DtmConfig.UpdateBranchSync = getIntEnv("UPDATE_BRANCH_SYNC", "0")
 	cont := []byte{}
 	for d := MustGetwd(); d != "" && d != "/"; d = filepath.Dir(d) {

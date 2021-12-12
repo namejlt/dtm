@@ -54,7 +54,7 @@ func registerBranch(c *gin.Context) (interface{}, error) {
 		Status:   dtmcli.StatusPrepared,
 		BinData:  []byte(data["data"]),
 	}
-	return svcRegisterBranch(&branch, data)
+	return svcRegisterBranch(data["trans_type"], &branch, data)
 }
 
 func query(c *gin.Context) (interface{}, error) {
@@ -62,10 +62,9 @@ func query(c *gin.Context) (interface{}, error) {
 	if gid == "" {
 		return nil, errors.New("no gid specified")
 	}
-	db := dbGet()
-	trans := transFromDb(db.DB, gid, false)
+	trans := transFromDb(gid)
 	branches := []TransBranch{}
-	db.Must().Where("gid", gid).Find(&branches)
+	dbGet().Must().Where("gid", gid).Find(&branches)
 	return map[string]interface{}{"transaction": trans, "branches": branches}, nil
 }
 

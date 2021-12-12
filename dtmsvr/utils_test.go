@@ -27,19 +27,6 @@ func TestUtils(t *testing.T) {
 	sleepCronTime()
 }
 
-func TestCheckLocalHost(t *testing.T) {
-	config.DisableLocalhost = 1
-	err := dtmimp.CatchP(func() {
-		checkLocalhost([]TransBranch{{URL: "http://localhost"}})
-	})
-	assert.Error(t, err)
-	config.DisableLocalhost = 0
-	err = dtmimp.CatchP(func() {
-		checkLocalhost([]TransBranch{{URL: "http://localhost"}})
-	})
-	assert.Nil(t, err)
-}
-
 func TestSetNextCron(t *testing.T) {
 	tg := TransGlobal{}
 	tg.RetryInterval = 15

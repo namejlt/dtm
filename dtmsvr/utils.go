@@ -8,7 +8,6 @@ package dtmsvr
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -18,8 +17,6 @@ import (
 	"github.com/yedf/dtm/common"
 	"github.com/yedf/dtm/dtmcli/dtmimp"
 	"github.com/yedf/dtm/dtmsvr/storage"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type branchStatus struct {
@@ -37,7 +34,7 @@ func dbGet() *common.DB {
 	return common.DbGet(config.DB)
 }
 
-func getStore() storage.Store {
+func getStore() *storage.SqlStore {
 	return storage.GetStore()
 }
 
@@ -77,26 +74,12 @@ func getOneHexIP() string {
 }
 
 // transFromDb construct trans from db
-func transFromDb(db *gorm.DB, gid string, lock bool) *TransGlobal {
+func transFromDb(gid string) *TransGlobal {
 	m := TransGlobal{}
-	if lock {
-		db = db.Clauses(clause.Locking{Strength: "UPDATE"})
-	}
-	dbr := db.Model(&m).Where("gid=?", gid).First(&m)
-	if dbr.Error == gorm.ErrRecordNotFound {
+	err := getStore().GetTransGlobal(gid, &m)
+	if err == storage.ErrNotFound {
 		return nil
 	}
-	e2p(dbr.Error)
+	e2p(err)
 	return &m
-}
-
-func checkLocalhost(branches []TransBranch) {
-	if config.DisableLocalhost == 0 {
-		return
-	}
-	for _, branch := range branches {
-		if strings.HasPrefix(branch.URL, "http://localhost") || strings.HasPrefix(branch.URL, "localhost") {
-			panic(errors.New("url for localhost is disabled. check for your config"))
-		}
-	}
 }

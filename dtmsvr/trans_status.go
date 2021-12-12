@@ -15,11 +15,11 @@ import (
 	"github.com/yedf/dtm/dtmcli"
 	"github.com/yedf/dtm/dtmcli/dtmimp"
 	"github.com/yedf/dtm/dtmgrpc/dtmgimp"
+	"github.com/yedf/dtm/dtmsvr/storage"
 	"github.com/yedf/dtmdriver"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 func (t *TransGlobal) touch(ctype cronType) *gorm.DB {
@@ -48,23 +48,15 @@ func (t *TransGlobal) changeStatus(status string) *gorm.DB {
 
 func (t *TransGlobal) changeBranchStatus(b *TransBranch, status string) {
 	now := time.Now()
+	b.Status = status
+	b.FinishTime = &now
+	b.UpdateTime = &now
 	if common.DtmConfig.UpdateBranchSync > 0 || t.updateBranchSync {
-		err := dbGet().Transaction(func(tx *gorm.DB) error {
-			dbr := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Model(&TransGlobal{}).Where("gid=? and status=?", t.Gid, t.Status).Find(&[]TransGlobal{})
-			checkAffected(dbr) // check TransGlobal is not modified
-			dbr = tx.Model(b).Updates(map[string]interface{}{
-				"status":      status,
-				"finish_time": now,
-				"update_time": now,
-			})
-			checkAffected(dbr)
-			return dbr.Error
-		})
+		err := storage.GetStore().LockGlobalSaveBranches(t.Gid, t.Status, b)
 		e2p(err)
 	} else { // 为了性能优化，把branch的status更新异步化
 		updateBranchAsyncChan <- branchStatus{id: b.ID, status: status, finishTime: &now}
 	}
-	b.Status = status
 }
 
 func (t *TransGlobal) isTimeout() bool {
