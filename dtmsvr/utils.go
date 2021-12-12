@@ -76,7 +76,7 @@ func getOneHexIP() string {
 // transFromDb construct trans from db
 func transFromDb(gid string) *TransGlobal {
 	m := TransGlobal{}
-	err := getStore().GetTransGlobal(gid, &m)
+	err := getStore().GetTransGlobal(gid, &m.TransGlobalStore)
 	if err == storage.ErrNotFound {
 		return nil
 	}

@@ -9,12 +9,12 @@ import (
 type SqlStore struct {
 }
 
-func (s *SqlStore) GetTransGlobal(gid string, trans interface{}) error {
+func (s *SqlStore) GetTransGlobal(gid string, trans *TransGlobalStore) error {
 	dbr := dbGet().Model(trans).Where("gid=?", gid).First(trans)
 	return wrapError(dbr.Error)
 }
 
-func (s *SqlStore) LockGlobalSaveBranches(gid string, status string, branches interface{}) error {
+func (s *SqlStore) LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore) error {
 	return dbGet().Transaction(func(tx *gorm.DB) error {
 		err := lockTransGlobal(tx, gid, status)
 		if err != nil {

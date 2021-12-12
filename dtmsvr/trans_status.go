@@ -52,7 +52,7 @@ func (t *TransGlobal) changeBranchStatus(b *TransBranch, status string) {
 	b.FinishTime = &now
 	b.UpdateTime = &now
 	if common.DtmConfig.UpdateBranchSync > 0 || t.updateBranchSync {
-		err := storage.GetStore().LockGlobalSaveBranches(t.Gid, t.Status, b)
+		err := storage.GetStore().LockGlobalSaveBranches(t.Gid, t.Status, []TransBranch{*b})
 		e2p(err)
 	} else { // 为了性能优化，把branch的status更新异步化
 		updateBranchAsyncChan <- branchStatus{id: b.ID, status: status, finishTime: &now}

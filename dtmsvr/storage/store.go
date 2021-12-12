@@ -11,13 +11,13 @@ import (
 var ErrNotFound = errors.New("storage: NotFound")
 var ErrUniqueConflict = errors.New("storage: UniqueKeyConflict")
 
-type Store interface {
-	GetTransGlobal(gid string, trans TransGlobalStore) error
-	LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore) error
-	SaveNewTrans(global *TransGlobalStore, branches []TransBranchStore) error
-}
+// type Store interface {
+// 	GetTransGlobal(gid string, trans TransGlobalStore) error
+// 	LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore) error
+// 	SaveNewTrans(global *TransGlobalStore, branches []TransBranchStore) error
+// }
 
-var store Store
+// var store Store
 
 func GetStore() *SqlStore {
 	return &SqlStore{}
