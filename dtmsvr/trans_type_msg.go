@@ -48,10 +48,10 @@ func (t *TransGlobal) mayQueryPrepared() {
 	} else if strings.Contains(body, dtmcli.ResultFailure) {
 		t.changeStatus(dtmcli.StatusFailed)
 	} else if strings.Contains(body, dtmcli.ResultOngoing) {
-		t.touch(cronReset)
+		t.touchCronTime(cronReset)
 	} else {
 		dtmimp.LogRedf("getting result failed for %s. error: %s", t.QueryPrepared, err.Error())
-		t.touch(cronBackoff)
+		t.touchCronTime(cronBackoff)
 	}
 }
 

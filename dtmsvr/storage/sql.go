@@ -65,30 +65,39 @@ func (s *SqlStore) SaveNewTrans(global *TransGlobalStore, branches []TransBranch
 	})
 }
 
-func (s *SqlStore) ChangeGlobalStatus(global *TransGlobalStore, oldStatus string, updates []string) {
-	dbr := dbGet().Must().Model(global).Where("status=? and gid=?", oldStatus, global.Gid).Select(updates).Updates(global)
+func (s *SqlStore) ChangeGlobalStatus(global *TransGlobalStore, newStatus string, updates []string) {
+	old := global.Status
+	global.Status = newStatus
+	dbr := dbGet().Must().Model(global).Where("status=? and gid=?", old, global.Gid).Select(updates).Updates(global)
 	checkAffected(dbr)
 }
 
-func (s *SqlStore) TouchGlobal(global *TransGlobalStore, updates []string) {
-	dbGet().Must().Model(global).Where("status=? and gid=?", global.Status, global.Gid).Select(updates).Updates(global)
+func (s *SqlStore) TouchCronTime(global *TransGlobalStore, nextCronInterval int64) {
+	global.NextCronTime = common.GetNextTime(nextCronInterval)
+	global.UpdateTime = common.GetNextTime(0)
+	global.NextCronInterval = nextCronInterval
+	dbGet().Must().Model(global).Where("status=? and gid=?", global.Status, global.Gid).
+		Select([]string{"next_cron_time", "update_time", "next_cron_interval"}).Updates(global)
 }
 
-func (s *SqlStore) LockOneGlobalTrans(global *TransGlobalStore, expireIn time.Duration, updates []string) error {
+func (s *SqlStore) LockOneGlobalTrans(global *TransGlobalStore, expireIn time.Duration) error {
 	db := dbGet()
 	getTime := dtmimp.GetDBSpecial().TimestampAdd
 	expire := int(expireIn / time.Second)
-	whereTime := fmt.Sprintf("next_cron_time < %s and update_time < %s", getTime(expire), getTime(expire-3))
-	// 这里next_cron_time需要限定范围，否则数据量累计之后，会导致查询变慢
-	// 限定update_time < now - 3，否则会出现刚被这个应用取出，又被另一个取出
+	whereTime := fmt.Sprintf("next_cron_time < %s", getTime(expire))
 	owner := uuid.NewString()
 	dbr := db.Must().Model(global).
-		Where(whereTime+"and status in ('prepared', 'aborting', 'submitted')").Limit(1).Update("owner", owner)
+		Where(whereTime + "and status in ('prepared', 'aborting', 'submitted')").
+		Limit(1).
+		Select([]string{"owner", "next_cron_time"}).
+		Updates(&TransGlobalStore{
+			Owner:        owner,
+			NextCronTime: common.GetNextTime(common.DtmConfig.RetryInterval),
+		})
 	if dbr.RowsAffected == 0 {
 		return ErrNotFound
 	}
-	dbr = db.Must().Where("owner=?", owner).Find(global)
-	db.Must().Model(global).Select(updates).Updates(global)
+	dbr = db.Must().Where("owner=?", owner).First(global)
 	return nil
 }
 

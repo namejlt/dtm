@@ -20,14 +20,14 @@ type Store interface {
 	LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore) error
 	SaveNewTrans(global *TransGlobalStore, branches []TransBranchStore) error
 	ChangeGlobalStatus(global *TransGlobalStore, oldStatus string, updates []string)
-	TouchGlobal(global *TransGlobalStore, updates []string)
+	TouchCronTime(global *TransGlobalStore, updates []string)
 	LockOneGlobalTrans(global *TransGlobalStore, expireIn time.Duration, updates []string) error
 }
 
 // var store Store
 
-func GetStore() *RedisStore {
-	return &RedisStore{}
+func GetStore() *SqlStore {
+	return &SqlStore{}
 }
 
 func wrapError(err error) error {

@@ -21,17 +21,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (t *TransGlobal) touch(ctype cronType) {
+func (t *TransGlobal) touchCronTime(ctype cronType) {
 	t.lastTouched = time.Now()
-	updates := t.setNextCron(ctype)
-	getStore().TouchGlobal(&t.TransGlobalStore, updates)
+	getStore().TouchCronTime(&t.TransGlobalStore, t.getNextCronInterval(ctype))
 }
 
 func (t *TransGlobal) changeStatus(status string) {
-	old := t.Status
-	t.Status = status
-	updates := t.setNextCron(cronReset)
-	updates = append(updates, "status")
+	updates := []string{"status"}
 	now := time.Now()
 	if status == dtmcli.StatusSucceed {
 		t.FinishTime = &now
@@ -40,7 +36,8 @@ func (t *TransGlobal) changeStatus(status string) {
 		t.RollbackTime = &now
 		updates = append(updates, "rollback_time")
 	}
-	getStore().ChangeGlobalStatus(&t.TransGlobalStore, old, updates)
+	getStore().ChangeGlobalStatus(&t.TransGlobalStore, status, updates)
+	t.Status = status
 }
 
 func (t *TransGlobal) changeBranchStatus(b *TransBranch, status string) {
@@ -134,27 +131,23 @@ func (t *TransGlobal) execBranch(branch *TransBranch) error {
 	// if time pass 1500ms and NextCronInterval is not default, then reset NextCronInterval
 	if err == nil && time.Since(t.lastTouched)+NowForwardDuration >= 1500*time.Millisecond ||
 		t.NextCronInterval > config.RetryInterval && t.NextCronInterval > t.RetryInterval {
-		t.touch(cronReset)
+		t.touchCronTime(cronReset)
 	} else if err == dtmimp.ErrOngoing {
-		t.touch(cronKeep)
+		t.touchCronTime(cronKeep)
 	} else if err != nil {
-		t.touch(cronBackoff)
+		t.touchCronTime(cronBackoff)
 	}
 	return err
 }
 
-func (t *TransGlobal) setNextCron(ctype cronType) []string {
+func (t *TransGlobal) getNextCronInterval(ctype cronType) int64 {
 	if ctype == cronBackoff {
-		t.NextCronInterval = t.NextCronInterval * 2
+		return t.NextCronInterval * 2
 	} else if ctype == cronKeep {
-		// do nothing
+		return t.NextCronInterval
 	} else if t.RetryInterval != 0 {
-		t.NextCronInterval = t.RetryInterval
+		return t.RetryInterval
 	} else {
-		t.NextCronInterval = config.RetryInterval
+		return config.RetryInterval
 	}
-
-	next := time.Now().Add(time.Duration(t.NextCronInterval) * time.Second)
-	t.NextCronTime = &next
-	return []string{"next_cron_interval", "next_cron_time"}
 }

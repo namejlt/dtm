@@ -47,7 +47,7 @@ func CronExpiredTrans(num int) {
 
 func lockOneTrans(expireIn time.Duration) *TransGlobal {
 	trans := TransGlobal{}
-	err := getStore().LockOneGlobalTrans(&trans.TransGlobalStore, expireIn, trans.setNextCron(cronKeep))
+	err := getStore().LockOneGlobalTrans(&trans.TransGlobalStore, expireIn)
 	if err == storage.ErrNotFound {
 		return nil
 	}

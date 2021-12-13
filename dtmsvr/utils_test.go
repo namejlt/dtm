@@ -20,11 +20,8 @@ func TestUtils(t *testing.T) {
 func TestSetNextCron(t *testing.T) {
 	tg := TransGlobal{}
 	tg.RetryInterval = 15
-	tg.setNextCron(cronReset)
-	assert.Equal(t, int64(15), tg.NextCronInterval)
+	assert.Equal(t, int64(15), tg.getNextCronInterval(cronReset))
 	tg.RetryInterval = 0
-	tg.setNextCron(cronReset)
-	assert.Equal(t, config.RetryInterval, tg.NextCronInterval)
-	tg.setNextCron(cronBackoff)
-	assert.Equal(t, config.RetryInterval*2, tg.NextCronInterval)
+	assert.Equal(t, config.RetryInterval, tg.getNextCronInterval(cronReset))
+	assert.Equal(t, config.RetryInterval*2, tg.getNextCronInterval(cronBackoff))
 }

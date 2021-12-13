@@ -9,6 +9,7 @@ package dtmsvr
 import (
 	"time"
 
+	"github.com/yedf/dtm/common"
 	"github.com/yedf/dtm/dtmcli"
 	"github.com/yedf/dtm/dtmcli/dtmimp"
 )
@@ -61,7 +62,8 @@ func (t *TransGlobal) processInner() (rerr error) {
 
 func (t *TransGlobal) saveNew() error {
 	branches := t.getProcessor().GenBranches()
-	t.setNextCron(cronReset)
+	t.NextCronInterval = t.getNextCronInterval(cronReset)
+	t.NextCronTime = common.GetNextTime(t.NextCronInterval)
 	t.Options = dtmimp.MustMarshalString(t.TransOptions)
 	if t.Options == "{}" {
 		t.Options = ""

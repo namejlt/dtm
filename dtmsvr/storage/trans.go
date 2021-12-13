@@ -24,6 +24,7 @@ type TransGlobalStore struct {
 	CustomData       string     `json:"custom_data,omitempty"`
 	NextCronInterval int64      `json:"next_cron_interval,omitempty"`
 	NextCronTime     *time.Time `json:"next_cron_time,omitempty"`
+	Owner            string     `json:"owner,omitempty"`
 	dtmcli.TransOptions
 }
 

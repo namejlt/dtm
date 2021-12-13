@@ -93,7 +93,7 @@ if (g ~= '') then
 	return 'EXISTS'
 end
 redis.call('SET', KEYS[1], VALUES[1])
-redis.call('SET', ARGS[1]+'-i-'+gs.next_cron_time+gs.gid, ARGS[2])
+redis.call('SET', ARGS[1]+'-u-'+gs.next_cron_time+gs.gid, ARGS[2])
 for k = 2, table.getn(KEYS) do
 	redis.call('LSET', KEYS[k], k-2, VALUES[k])
 end
@@ -110,7 +110,7 @@ func (s *RedisStore) ChangeGlobalStatus(global *TransGlobalStore, oldStatus stri
 	checkAffected(dbr)
 }
 
-func (s *RedisStore) TouchGlobal(global *TransGlobalStore, updates []string) {
+func (s *RedisStore) TouchCronTime(global *TransGlobalStore, updates []string) {
 	dbGet().Must().Model(global).Where("status=? and gid=?", global.Status, global.Gid).Select(updates).Updates(global)
 }
 

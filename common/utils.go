@@ -97,3 +97,8 @@ func RecoverPanic(err *error) {
 		}
 	}
 }
+
+func GetNextTime(second int64) *time.Time {
+	next := time.Now().Add(time.Duration(second) * time.Second)
+	return &next
+}
