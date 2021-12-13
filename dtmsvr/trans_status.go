@@ -27,7 +27,7 @@ func (t *TransGlobal) touchCronTime(ctype cronType) {
 }
 
 func (t *TransGlobal) changeStatus(status string) {
-	updates := []string{"status"}
+	updates := []string{"status", "update_time"}
 	now := time.Now()
 	if status == dtmcli.StatusSucceed {
 		t.FinishTime = &now
@@ -36,6 +36,7 @@ func (t *TransGlobal) changeStatus(status string) {
 		t.RollbackTime = &now
 		updates = append(updates, "rollback_time")
 	}
+	t.UpdateTime = &now
 	getStore().ChangeGlobalStatus(&t.TransGlobalStore, status, updates)
 	t.Status = status
 }
