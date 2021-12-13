@@ -62,7 +62,15 @@ func (s *RedisStore) LockGlobalSaveBranches(gid string, status string, branches 
 		values = append(values, dtmimp.MustMarshalString(b))
 	}
 	redisGet().Eval(ctx, `
-
+local g = redis.call('GET', KEYS[0])
+local js = cjson.decode(g)
+if (js.status ~= VALUES[1]) then
+	return 'unexpected status: ' + js.status
+end
+for k = 2, table.getn(KEYS) do
+	redis.call('LSET', KEYS[k], k-2, VALUES[k])
+end
+return ''
 	`, keys, values...)
 	return dbGet().Transaction(func(tx *gorm.DB) error {
 		err := lockTransGlobal(tx, gid, status)
