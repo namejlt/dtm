@@ -88,3 +88,12 @@ func GetCallerCodeDir() string {
 	}
 	return wd + "/" + filepath.Base(filepath.Dir(file))
 }
+
+func RecoverPanic(err *error) {
+	if x := recover(); x != nil {
+		e := dtmimp.AsError(x)
+		if err != nil {
+			err = &e
+		}
+	}
+}

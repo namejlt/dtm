@@ -69,6 +69,7 @@ var updateBranchAsyncChan chan branchStatus = make(chan branchStatus, 1000)
 
 func updateBranchAsync() {
 	for { // flush branches every second
+		defer common.RecoverPanic(nil)
 		updates := []TransBranch{}
 		started := time.Now()
 		checkInterval := 20 * time.Millisecond
