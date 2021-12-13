@@ -6,10 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/yedf/dtm/common"
 	"github.com/yedf/dtm/dtmcli/dtmimp"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 const prefix = "{}"
@@ -54,50 +52,57 @@ func (s *RedisStore) UpdateBranches(branches []TransBranchStore, updates []strin
 	panic("not implemented")
 }
 
-func (s *RedisStore) LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore) error {
-	keys := []string{gkey(gid)}
-	values := []interface{}{status}
+func buildReq(global *TransGlobalStore, branches []TransBranchStore) ([]string, []interface{}) {
+	keys := []string{"prefix", "global"}
+	values := []interface{}{prefix, dtmimp.MustMarshalString(global)}
 	for _, b := range branches {
-		keys = append(keys, bkey(gid))
+		keys = append(keys, "branch")
 		values = append(values, dtmimp.MustMarshalString(b))
 	}
-	redisGet().Eval(ctx, `
-local g = redis.call('GET', KEYS[0])
-local js = cjson.decode(g)
-if (js.status ~= VALUES[1]) then
-	return 'unexpected status: ' + js.status
+	return keys, values
+}
+func (s *RedisStore) LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore) error {
+	keys, values := buildReq(&TransGlobalStore{Gid: gid, Status: status}, branches)
+	r, err := redisGet().Eval(ctx, `
+local gs = cjson.decode(ARGS[2])
+local g = redis.call('GET', ARGS[1]+'-g-'+ gs.Gid)
+if (g == '') then
+	return 'LOCK_FAILED'
 end
+local js = cjson.decode(g)
+if (js.status ~= gs.status) then
+	return 'LOCK_FAILED'
+end
+for k = 3, table.getn(KEYS) do
+	redis.call('LSET', KEYS[k], k-3, VALUES[k])
+end
+return ''
+	`, keys, values...).Result()
+	if r == "LOCK_FAILED" {
+		return ErrNotFound
+	}
+	return err
+}
+
+func (s *RedisStore) SaveNewTrans(global *TransGlobalStore, branches []TransBranchStore) error {
+	keys, args := buildReq(global, branches)
+	r, err := redisGet().Eval(ctx, `
+local gs = cjson.decode(ARGS[2])
+local g = redis.call('GET', ARGS[1]+'-g-'+gs.gid)
+if (g ~= '') then
+	return 'EXISTS'
+end
+redis.call('SET', KEYS[1], VALUES[1])
+redis.call('SET', ARGS[1]+'-i-'+gs.next_cron_time+gs.gid, ARGS[2])
 for k = 2, table.getn(KEYS) do
 	redis.call('LSET', KEYS[k], k-2, VALUES[k])
 end
 return ''
-	`, keys, values...)
-	return dbGet().Transaction(func(tx *gorm.DB) error {
-		err := lockTransGlobal(tx, gid, status)
-		if err != nil {
-			return err
-		}
-		dbr := tx.Save(branches)
-		return dbr.Error
-	})
-}
-
-func (s *RedisStore) SaveNewTrans(global *TransGlobalStore, branches []TransBranchStore) error {
-	return dbGet().Transaction(func(db1 *gorm.DB) error {
-		db := &common.DB{DB: db1}
-		dbr := db.Must().Clauses(clause.OnConflict{
-			DoNothing: true,
-		}).Create(global)
-		if dbr.RowsAffected <= 0 { // 如果这个不是新事务，返回错误
-			return ErrUniqueConflict
-		}
-		if len(branches) > 0 {
-			db.Must().Clauses(clause.OnConflict{
-				DoNothing: true,
-			}).Create(&branches)
-		}
-		return nil
-	})
+	`, keys, args...).Result()
+	if r == "EXISTS" {
+		return ErrUniqueConflict
+	}
+	return err
 }
 
 func (s *RedisStore) ChangeGlobalStatus(global *TransGlobalStore, oldStatus string, updates []string) {

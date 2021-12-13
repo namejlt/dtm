@@ -26,8 +26,8 @@ type Store interface {
 
 // var store Store
 
-func GetStore() Store {
-	return &SqlStore{}
+func GetStore() *RedisStore {
+	return &RedisStore{}
 }
 
 func wrapError(err error) error {
