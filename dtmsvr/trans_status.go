@@ -46,7 +46,7 @@ func (t *TransGlobal) changeBranchStatus(b *TransBranch, status string, branchPo
 	b.Status = status
 	b.FinishTime = &now
 	b.UpdateTime = &now
-	if config.DB["driver"] != dtmimp.DBTypeRedis && (config.UpdateBranchSync > 0 || t.updateBranchSync) {
+	if config.DB["driver"] == dtmimp.DBTypeRedis || config.UpdateBranchSync > 0 || t.updateBranchSync {
 		err := storage.GetStore().LockGlobalSaveBranches(t.Gid, t.Status, []TransBranch{*b}, branchPos)
 		e2p(err)
 	} else { // 为了性能优化，把branch的status更新异步化

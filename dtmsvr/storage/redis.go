@@ -91,6 +91,9 @@ func callLua(args []interface{}, lua string) (string, error) {
 }
 
 func (s *RedisStore) SaveNewTrans(global *TransGlobalStore, branches []TransBranchStore) error {
+	now := time.Now()
+	global.CreateTime = &now
+	global.UpdateTime = &now
 	args := newArgList().
 		AppendObject(global).
 		AppendRaw(global.NextCronTime.Unix()).
@@ -167,9 +170,9 @@ end
 }
 
 func (s *RedisStore) LockOneGlobalTrans(global *TransGlobalStore, expireIn time.Duration) error {
-	unixNow := time.Now().Add(expireIn).Unix()
+	expired := time.Now().Add(expireIn).Unix()
 	next := time.Now().Add(time.Duration(config.RetryInterval) * time.Second).Unix()
-	args := newArgList().AppendRaw(unixNow).AppendRaw(next).List
+	args := newArgList().AppendRaw(expired).AppendRaw(next).List
 	r, err := callLua(args, `
 local k = ARGV[1] .. '_u'
 local r = redis.call('ZRANGE', k, 0, 0, 'WITHSCORES')
@@ -184,7 +187,7 @@ if g == false then
 	return 'NOT_FOUND'
 end
 
-if tonumber(r[2]) > tonumber(ARGV[3]) then
+if tonumber(r[2]) > tonumber(ARGV[2]) then
 	return 'NOT_FOUND'
 end
 redis.call('ZADD', k, ARGV[3], gid)

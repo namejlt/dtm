@@ -16,6 +16,7 @@ import (
 	"github.com/yedf/dtm/dtmcli"
 	"github.com/yedf/dtm/dtmcli/dtmimp"
 	"github.com/yedf/dtm/dtmsvr"
+	"github.com/yedf/dtm/dtmsvr/storage"
 	"github.com/yedf/dtm/examples"
 )
 
@@ -25,15 +26,13 @@ var app *gin.Engine
 
 func getTransStatus(gid string) string {
 	sm := TransGlobal{}
-	dbr := dbGet().Model(&sm).Where("gid=?", gid).First(&sm)
-	e2p(dbr.Error)
+	err := storage.GetStore().GetTransGlobal(gid, &sm.TransGlobalStore)
+	e2p(err)
 	return sm.Status
 }
 
 func getBranchesStatus(gid string) []string {
-	branches := []TransBranch{}
-	dbr := dbGet().Model(&TransBranch{}).Where("gid=?", gid).Order("id").Find(&branches)
-	e2p(dbr.Error)
+	branches := storage.GetStore().GetBranches(gid)
 	status := []string{}
 	for _, branch := range branches {
 		status = append(status, branch.Status)
