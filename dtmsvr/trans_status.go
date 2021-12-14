@@ -37,7 +37,8 @@ func (t *TransGlobal) changeStatus(status string) {
 		updates = append(updates, "rollback_time")
 	}
 	t.UpdateTime = &now
-	getStore().ChangeGlobalStatus(&t.TransGlobalStore, status, updates, status == dtmcli.StatusSucceed || status == dtmcli.StatusFailed)
+	err := getStore().ChangeGlobalStatus(&t.TransGlobalStore, status, updates, status == dtmcli.StatusSucceed || status == dtmcli.StatusFailed)
+	dtmimp.E2P(err)
 	t.Status = status
 }
 

@@ -20,7 +20,7 @@ type Store interface {
 	UpdateBranches(branches []TransBranchStore, updates []string) *gorm.DB
 	LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore, branchStart int) error
 	SaveNewTrans(global *TransGlobalStore, branches []TransBranchStore) error
-	ChangeGlobalStatus(global *TransGlobalStore, oldStatus string, updates []string, finished bool)
+	ChangeGlobalStatus(global *TransGlobalStore, oldStatus string, updates []string, finished bool) error
 	TouchCronTime(global *TransGlobalStore, nextCronInterval int64)
 	LockOneGlobalTrans(global *TransGlobalStore, expireIn time.Duration) error
 }

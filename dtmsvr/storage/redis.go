@@ -109,7 +109,7 @@ if g ~= false then
 end
 
 redis.call('SET', ARGV[1] .. '-g-' .. gs.gid, ARGV[2])
-redis.call('ZADD', ARGV[1] .. '-u-' .. gs.gid, ARGV[3], gs.gid)
+redis.call('ZADD', ARGV[1] .. '-u', ARGV[3], gs.gid)
 for k = 4, table.getn(ARGV) do
 	redis.call('RPUSH', ARGV[1] .. '-b-' .. gs.gid, ARGV[k])
 end
@@ -146,22 +146,27 @@ return ''
 	`)
 }
 
-func (s *RedisStore) ChangeGlobalStatus(global *TransGlobalStore, newStatus string, updates []string, finished bool) {
+func (s *RedisStore) ChangeGlobalStatus(global *TransGlobalStore, newStatus string, updates []string, finished bool) error {
 	old := global.Status
 	global.Status = newStatus
-	args := newArgList().AppendObject(global).AppendRaw(old).List
-	err := callLua(args, `
+	args := newArgList().AppendObject(global).AppendRaw(old).AppendRaw(finished).List
+	return callLua(args, `
 local p = ARGV[1]
 local gs = cjson.decode(ARGV[2])
-local old = redis.call('GET', p+'-g-'+gid)
-local os = cjson.decode(old)
-if (os.status ~= ARGV[3]) then
-  return 'LOCK_FAILED'
+local old = redis.call('GET', p .. '-g-' .. gs.gid)
+if old == false then
+	return 'NOT_FOUND'
 end
-redis.call('SET', p+'-g-'+gid,  ARGV[2])
+local os = cjson.decode(old)
+if os.status ~= ARGV[3] then
+  return 'NOT_FOUND'
+end
+redis.call('SET', p .. '-g-' .. gs.gid,  ARGV[2])
+if ARGV[4] == 'true' then
+	redis.call('ZREM', p .. '-u', gs.gid)
+end
 return ''
 `)
-	dtmimp.E2P(err)
 }
 
 func (s *RedisStore) TouchCronTime(global *TransGlobalStore, nextCronInterval int64) {

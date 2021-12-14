@@ -18,7 +18,7 @@ func TestMain(m *testing.M) {
 func TestRedisSave(t *testing.T) {
 	gid := dtmimp.GetFuncName()
 	next := time.Now().Add(10 * time.Second)
-	g := &TransGlobalStore{Gid: gid, Status: "submitted", NextCronTime: &next}
+	g := &TransGlobalStore{Gid: gid, Status: "prepared", NextCronTime: &next}
 	bs := []TransBranchStore{
 		{BranchID: "01"},
 		{BranchID: "02"},
@@ -42,7 +42,15 @@ func TestRedisSave(t *testing.T) {
 	assert.Equal(t, "02", bs3[1].BranchID)
 	assert.Equal(t, "01", bs3[0].BranchID)
 
-	err = s.LockGlobalSaveBranches(g.Gid, "prepared", []TransBranchStore{bs[1]}, 1)
+	err = s.LockGlobalSaveBranches(g.Gid, "submitted", []TransBranchStore{bs[1]}, 1)
 	assert.Equal(t, ErrNotFound, err)
 
+	g.Status = "no"
+	err = s.ChangeGlobalStatus(g, "submitted", []string{}, false)
+	assert.Equal(t, ErrNotFound, err)
+	g.Status = "prepared"
+	err = s.ChangeGlobalStatus(g, "submitted", []string{}, false)
+	assert.Nil(t, err)
+	err = s.ChangeGlobalStatus(g, "succeed", []string{}, true)
+	assert.Nil(t, err)
 }

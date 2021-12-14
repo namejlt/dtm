@@ -70,11 +70,14 @@ func (s *SqlStore) SaveNewTrans(global *TransGlobalStore, branches []TransBranch
 	})
 }
 
-func (s *SqlStore) ChangeGlobalStatus(global *TransGlobalStore, newStatus string, updates []string, finished bool) {
+func (s *SqlStore) ChangeGlobalStatus(global *TransGlobalStore, newStatus string, updates []string, finished bool) error {
 	old := global.Status
 	global.Status = newStatus
 	dbr := dbGet().Must().Model(global).Where("status=? and gid=?", old, global.Gid).Select(updates).Updates(global)
-	checkAffected(dbr)
+	if dbr.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (s *SqlStore) TouchCronTime(global *TransGlobalStore, nextCronInterval int64) {
