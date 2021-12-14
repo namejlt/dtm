@@ -41,13 +41,13 @@ func (t *TransGlobal) changeStatus(status string) {
 	t.Status = status
 }
 
-func (t *TransGlobal) changeBranchStatus(b *TransBranch, status string) {
+func (t *TransGlobal) changeBranchStatus(b *TransBranch, status string, branchPos int) {
 	now := time.Now()
 	b.Status = status
 	b.FinishTime = &now
 	b.UpdateTime = &now
 	if common.DtmConfig.DB["driver"] != dtmimp.DBTypeRedis && (common.DtmConfig.UpdateBranchSync > 0 || t.updateBranchSync) {
-		err := storage.GetStore().LockGlobalSaveBranches(t.Gid, t.Status, []TransBranch{*b})
+		err := storage.GetStore().LockGlobalSaveBranches(t.Gid, t.Status, []TransBranch{*b}, branchPos)
 		e2p(err)
 	} else { // 为了性能优化，把branch的status更新异步化
 		updateBranchAsyncChan <- branchStatus{id: b.ID, status: status, finishTime: &now}
@@ -123,10 +123,10 @@ func (t *TransGlobal) getBranchResult(branch *TransBranch) (string, error) {
 	return "", fmt.Errorf("http result should contains SUCCESS|FAILURE|ONGOING. grpc error should return nil|Aborted with message(FAILURE|ONGOING). \nrefer to: https://dtm.pub/summary/arch.html#http\nunkown result will be retried: %s", body)
 }
 
-func (t *TransGlobal) execBranch(branch *TransBranch) error {
+func (t *TransGlobal) execBranch(branch *TransBranch, branchPos int) error {
 	status, err := t.getBranchResult(branch)
 	if status != "" {
-		t.changeBranchStatus(branch, status)
+		t.changeBranchStatus(branch, status, branchPos)
 	}
 	branchMetrics(t, branch, status == dtmcli.StatusSucceed)
 	// if time pass 1500ms and NextCronInterval is not default, then reset NextCronInterval

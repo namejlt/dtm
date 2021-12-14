@@ -51,6 +51,7 @@ func svcAbort(t *TransGlobal) (interface{}, error) {
 }
 
 func svcRegisterBranch(transType string, branch *TransBranch, data map[string]string) (ret interface{}, rerr error) {
+	branch.Position = -1
 	branches := []TransBranch{*branch, *branch}
 	if transType == "tcc" {
 		for i, b := range []string{dtmcli.BranchCancel, dtmcli.BranchConfirm} {
@@ -66,7 +67,7 @@ func svcRegisterBranch(transType string, branch *TransBranch, data map[string]st
 		return nil, fmt.Errorf("unknow trans type: %s", transType)
 	}
 
-	err := storage.GetStore().LockGlobalSaveBranches(branch.Gid, dtmcli.StatusPrepared, branches)
+	err := storage.GetStore().LockGlobalSaveBranches(branch.Gid, dtmcli.StatusPrepared, branches, -1)
 	if err == storage.ErrNotFound {
 		msg := fmt.Sprintf("no trans with gid: %s status: %s found", branch.Gid, dtmcli.StatusPrepared)
 		return map[string]interface{}{"dtm_result": dtmcli.ResultFailure, "message": msg}, nil

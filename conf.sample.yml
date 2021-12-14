@@ -1,9 +1,9 @@
-# DB:
-#   driver: 'redis'
-#   host: 'localhost'
-#   user: ''
-#   password: ''
-#   port: '6379'
+DB:
+  driver: 'redis'
+  host: 'localhost'
+  user: ''
+  password: ''
+  port: '6379'
 
 # driver: 'postgres'
 # host: 'localhost'
@@ -28,7 +28,7 @@
 # TimeoutToFail: 35 # timeout for XA, TCC to fail. saga's timeout default to infinite, which can be overwritten in saga options
 # RetryInterval: 10 # the subtrans branch will be retried after this interval
 
-DB:
+EXAMPLES_DB:
   driver: 'mysql'
   host: 'localhost'
   user: 'root'

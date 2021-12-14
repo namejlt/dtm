@@ -66,7 +66,7 @@ func (t *transMsgProcessor) ProcessOnce(branches []TransBranch) error {
 		if branch.Op != dtmcli.BranchAction || branch.Status != dtmcli.StatusPrepared {
 			continue
 		}
-		err := t.execBranch(branch)
+		err := t.execBranch(branch, current)
 		if err != nil {
 			return err
 		}

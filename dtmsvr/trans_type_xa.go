@@ -31,9 +31,9 @@ func (t *transXaProcessor) ProcessOnce(branches []TransBranch) error {
 		t.changeStatus(dtmcli.StatusAborting)
 	}
 	currentType := dtmimp.If(t.Status == dtmcli.StatusSubmitted, dtmcli.BranchCommit, dtmcli.BranchRollback).(string)
-	for _, branch := range branches {
+	for i, branch := range branches {
 		if branch.Op == currentType && branch.Status != dtmcli.StatusSucceed {
-			err := t.execBranch(&branch)
+			err := t.execBranch(&branch, i)
 			if err != nil {
 				return err
 			}

@@ -34,7 +34,7 @@ func (t *transTccProcessor) ProcessOnce(branches []TransBranch) error {
 	for current := len(branches) - 1; current >= 0; current-- {
 		if branches[current].Op == op && branches[current].Status == dtmcli.StatusPrepared {
 			dtmimp.Logf("branch info: current: %d ID: %d", current, branches[current].ID)
-			err := t.execBranch(&branches[current])
+			err := t.execBranch(&branches[current], current)
 			if err != nil {
 				return err
 			}

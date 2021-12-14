@@ -18,7 +18,7 @@ type Store interface {
 	GetTransGlobals(lid int, globals interface{})
 	GetBranches(gid string) []TransBranchStore
 	UpdateBranches(branches []TransBranchStore, updates []string) *gorm.DB
-	LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore) error
+	LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore, branchStart int) error
 	SaveNewTrans(global *TransGlobalStore, branches []TransBranchStore) error
 	ChangeGlobalStatus(global *TransGlobalStore, oldStatus string, updates []string, finished bool)
 	TouchCronTime(global *TransGlobalStore, nextCronInterval int64)

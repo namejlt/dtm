@@ -35,6 +35,7 @@ type dtmConfigType struct {
 	TimeoutToFail     int64             `yaml:"TimeoutToFail"`
 	RetryInterval     int64             `yaml:"RetryInterval"`
 	DB                map[string]string `yaml:"DB"`
+	ExamplesDB        map[string]string `yaml:"ExamplesDB"`
 	MicroService      MicroService      `yaml:"MicroService"`
 	UpdateBranchSync  int64             `yaml:"UpdateBranchSync"`
 }
@@ -91,7 +92,9 @@ func MustLoadConfig() {
 func checkConfig() error {
 	if DtmConfig.DB["driver"] == "" {
 		return errors.New("db driver empty")
-	} else if DtmConfig.DB["user"] == "" || DtmConfig.DB["host"] == "" {
+	} else if DtmConfig.DB["driver"] == "redis" && (DtmConfig.DB["host"] == "" || DtmConfig.DB["port"] == "") {
+		return errors.New("db redis config not valid")
+	} else if DtmConfig.DB["driver"] != "redis" && (DtmConfig.DB["user"] == "" || DtmConfig.DB["host"] == "") {
 		return errors.New("db config not valid")
 	} else if DtmConfig.RetryInterval < 10 {
 		return errors.New("RetryInterval should not be less than 10")

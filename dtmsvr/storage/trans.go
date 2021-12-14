@@ -44,6 +44,7 @@ type TransBranchStore struct {
 	Status       string     `json:"status,omitempty"`
 	FinishTime   *time.Time `json:"finish_time,omitempty"`
 	RollbackTime *time.Time `json:"rollback_time,omitempty"`
+	Position     int        `json:"position"` // redis can use it as list index. -1 indicate to append
 }
 
 // TableName TableName

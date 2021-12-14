@@ -41,7 +41,7 @@ func (s *SqlStore) UpdateBranches(branches []TransBranchStore, updates []string)
 	}).Create(branches)
 }
 
-func (s *SqlStore) LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore) error {
+func (s *SqlStore) LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore, branchStart int) error {
 	return dbGet().Transaction(func(tx *gorm.DB) error {
 		err := lockTransGlobal(tx, gid, status)
 		if err != nil {

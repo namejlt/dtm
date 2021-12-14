@@ -107,7 +107,7 @@ func (t *transSagaProcessor) ProcessOnce(branches []TransBranch) error {
 				dtmimp.LogRedf("exec branch error: %v", err)
 			}
 		}()
-		err = t.execBranch(&branches[i])
+		err = t.execBranch(&branches[i], i)
 	}
 	pickToRunActions := func() []int {
 		toRun := []int{}
