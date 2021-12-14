@@ -8,7 +8,7 @@ import (
 	"github.com/yedf/dtm/dtmcli/dtmimp"
 )
 
-func TestUtils(t *testing.T) {
+func testSql(t *testing.T) {
 	common.MustLoadConfig()
 	db := dbGet()
 	db.NoMust()
@@ -16,4 +16,12 @@ func TestUtils(t *testing.T) {
 		checkAffected(db.DB)
 	})
 	assert.Error(t, err)
+}
+
+func TestDB(t *testing.T) {
+	if config.DB["driver"] == "redis" {
+
+	} else {
+		testSql(t)
+	}
 }
