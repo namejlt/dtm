@@ -77,9 +77,16 @@ func TestRedisLockTrans(t *testing.T) {
 	err := s.LockOneGlobalTrans(g2, 2*time.Duration(config.RetryInterval)*time.Second)
 	assert.Nil(t, err)
 	assert.Equal(t, gid, g2.Gid)
+
+	s.TouchCronTime(g, 3*config.RetryInterval)
+	err = s.LockOneGlobalTrans(g2, 2*time.Duration(config.RetryInterval)*time.Second)
+	assert.Equal(t, ErrNotFound, err)
+
+	s.TouchCronTime(g, 1*config.RetryInterval)
 	err = s.LockOneGlobalTrans(g2, 2*time.Duration(config.RetryInterval)*time.Second)
 	assert.Nil(t, err)
 	assert.Equal(t, gid, g2.Gid)
+
 	err = s.ChangeGlobalStatus(g, "succeed", []string{}, true)
 	assert.Nil(t, err)
 	err = s.LockOneGlobalTrans(g2, 2*time.Duration(config.RetryInterval)*time.Second)

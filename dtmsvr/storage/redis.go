@@ -82,7 +82,7 @@ func callLua(args []interface{}, lua string) (string, error) {
 	if err != nil && err != redis.Nil {
 		return "", err
 	}
-	s := r.(string)
+	s, _ := r.(string)
 	err = map[string]error{
 		"NOT_FOUND":       ErrNotFound,
 		"UNIQUE_CONFLICT": ErrUniqueConflict,
@@ -109,7 +109,6 @@ redis.call('ZADD', ARGV[1] .. '_u', ARGV[3], gs.gid)
 for k = 4, table.getn(ARGV) do
 	redis.call('RPUSH', ARGV[1] .. '_b_' .. gs.gid, ARGV[k])
 end
-return ''
 `)
 	return err
 }
@@ -139,7 +138,6 @@ for k = 4, table.getn(ARGV) do
 		redis.call('LSET', pre .. '_b_' .. gs.gid, start+k-4, ARGV[k])
 	end
 end
-return ''
 	`)
 	return err
 }
@@ -164,7 +162,6 @@ redis.log(redis.LOG_WARNING, 'finished: ', ARGV[4])
 if ARGV[4] == '1' then
 	redis.call('ZREM', p .. '_u', gs.gid)
 end
-return ''
 `)
 	return err
 }
@@ -207,7 +204,7 @@ func (s *RedisStore) TouchCronTime(global *TransGlobalStore, nextCronInterval in
 	_, err := callLua(args, `
 local p = ARGV[1]
 local g = cjson.decode(ARGV[2])
-redis.call('ZADD', p .. '_u', g.gid, ARGV[3])
+redis.call('ZADD', p .. '_u', ARGV[3], g.gid)
 redis.call('SET', p .. '_g_' .. g.gid, ARGV[2])
 	`)
 	dtmimp.E2P(err)
