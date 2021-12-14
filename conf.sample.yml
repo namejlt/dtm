@@ -28,7 +28,7 @@ DB:
 # TimeoutToFail: 35 # timeout for XA, TCC to fail. saga's timeout default to infinite, which can be overwritten in saga options
 # RetryInterval: 10 # the subtrans branch will be retried after this interval
 
-EXAMPLES_DB:
+ExamplesDB:
   driver: 'mysql'
   host: 'localhost'
   user: 'root'

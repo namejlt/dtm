@@ -16,7 +16,7 @@ import (
 var config = &common.DtmConfig
 
 func resetXaData() {
-	if config.DB["driver"] != "mysql" {
+	if config.ExamplesDB["driver"] != "mysql" {
 		return
 	}
 
@@ -34,10 +34,10 @@ func resetXaData() {
 // PopulateDB populate example mysql data
 func PopulateDB(skipDrop bool) {
 	resetXaData()
-	file := fmt.Sprintf("%s/examples.%s.sql", common.GetCallerCodeDir(), config.DB["driver"])
-	common.RunSQLScript(config.DB, file, skipDrop)
-	file = fmt.Sprintf("%s/../dtmcli/barrier.%s.sql", common.GetCallerCodeDir(), config.DB["driver"])
-	common.RunSQLScript(config.DB, file, skipDrop)
+	file := fmt.Sprintf("%s/examples.%s.sql", common.GetCallerCodeDir(), config.ExamplesDB["driver"])
+	common.RunSQLScript(config.ExamplesDB, file, skipDrop)
+	file = fmt.Sprintf("%s/../dtmcli/barrier.%s.sql", common.GetCallerCodeDir(), config.ExamplesDB["driver"])
+	common.RunSQLScript(config.ExamplesDB, file, skipDrop)
 }
 
 type sampleInfo struct {

@@ -76,11 +76,11 @@ func infoFromContext(c *gin.Context) *dtmcli.BranchBarrier {
 }
 
 func dbGet() *common.DB {
-	return common.DbGet(config.DB)
+	return common.DbGet(config.ExamplesDB)
 }
 
 func sdbGet() *sql.DB {
-	db, err := dtmimp.PooledDB(config.DB)
+	db, err := dtmimp.PooledDB(config.ExamplesDB)
 	dtmimp.FatalIfError(err)
 	return db
 }

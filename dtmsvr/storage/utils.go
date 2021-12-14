@@ -27,8 +27,8 @@ var once sync.Once
 func redisGet() *redis.Client {
 	once.Do(func() {
 		rdb = redis.NewClient(&redis.Options{
-			Addr:     fmt.Sprintf("%s:%s", common.DtmConfig.DB["host"], common.DtmConfig.DB["port"]),
-			Password: common.DtmConfig.DB["password"],
+			Addr:     fmt.Sprintf("%s:%s", config.DB["host"], config.DB["port"]),
+			Password: config.DB["password"],
 		})
 	})
 	return rdb

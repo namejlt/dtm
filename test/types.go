@@ -18,7 +18,7 @@ import (
 var config = &common.DtmConfig
 
 func dbGet() *common.DB {
-	return common.DbGet(config.DB)
+	return common.DbGet(config.ExamplesDB)
 }
 
 // waitTransProcessed only for test usage. wait for transaction processed once
