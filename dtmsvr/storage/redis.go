@@ -2,15 +2,15 @@ package storage
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/yedf/dtm/common"
 	"github.com/yedf/dtm/dtmcli/dtmimp"
 	"gorm.io/gorm"
 )
 
-const prefix = "{}"
+const prefix = "{0}"
 
 var ctx context.Context = context.Background()
 
@@ -23,6 +23,11 @@ func bkey(gid string) string {
 }
 
 type RedisStore struct {
+}
+
+func (s *RedisStore) PopulateData(skipDrop bool) {
+	_, err := redisGet().FlushAll(ctx).Result()
+	dtmimp.PanicIf(err != nil, err)
 }
 
 func (s *RedisStore) GetTransGlobal(gid string, trans *TransGlobalStore) error {
@@ -52,20 +57,39 @@ func (s *RedisStore) UpdateBranches(branches []TransBranchStore, updates []strin
 	panic("not implemented")
 }
 
-func buildReq(global *TransGlobalStore, branches []TransBranchStore) ([]string, []interface{}) {
-	keys := []string{"prefix", "global"}
-	values := []interface{}{prefix, dtmimp.MustMarshalString(global)}
-	for _, b := range branches {
-		keys = append(keys, "branch")
-		values = append(values, dtmimp.MustMarshalString(b))
-	}
-	return keys, values
+type argList struct {
+	List []interface{}
 }
+
+func newArgList() *argList { return &argList{} }
+
+func (a *argList) AppendRaw(v interface{}) *argList {
+	a.List = append(a.List, v)
+	return a
+}
+
+func (a *argList) AppendObject(v interface{}) *argList {
+	a.List = append(a.List, dtmimp.MustMarshalString(v))
+	return a
+}
+
+func (a *argList) AppendBranches(branches []TransBranchStore) *argList {
+	for _, b := range branches {
+		a.List = append(a.List, dtmimp.MustMarshalString(b))
+	}
+	return a
+}
+
 func (s *RedisStore) LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore) error {
-	keys, values := buildReq(&TransGlobalStore{Gid: gid, Status: status}, branches)
+	args := newArgList().
+		AppendRaw(prefix).
+		AppendObject(&TransGlobalStore{Gid: gid, Status: status}).
+		AppendBranches(branches).
+		List
 	r, err := redisGet().Eval(ctx, `
+local pre = ARGS[1]
 local gs = cjson.decode(ARGS[2])
-local g = redis.call('GET', ARGS[1]+'-g-'+ gs.Gid)
+local g = redis.call('GET', pre+'-g-'+ gs.Gid)
 if (g == '') then
 	return 'LOCK_FAILED'
 end
@@ -73,11 +97,11 @@ local js = cjson.decode(g)
 if (js.status ~= gs.status) then
 	return 'LOCK_FAILED'
 end
-for k = 3, table.getn(KEYS) do
-	redis.call('LSET', KEYS[k], k-3, VALUES[k])
+for k = 2, table.getn(ARGS) do
+	redis.call('LSET', pre+'-b-', k-2, ARGS[k-2])
 end
 return ''
-	`, keys, values...).Result()
+	`, []string{"-"}, args...).Result()
 	if r == "LOCK_FAILED" {
 		return ErrNotFound
 	}
@@ -85,7 +109,7 @@ return ''
 }
 
 func (s *RedisStore) SaveNewTrans(global *TransGlobalStore, branches []TransBranchStore) error {
-	keys, args := buildReq(global, branches)
+	args := newArgList().AppendRaw(prefix).AppendObject(global).AppendBranches(branches).List
 	r, err := redisGet().Eval(ctx, `
 local gs = cjson.decode(ARGS[2])
 local g = redis.call('GET', ARGS[1]+'-g-'+gs.gid)
@@ -98,36 +122,76 @@ for k = 2, table.getn(KEYS) do
 	redis.call('LSET', KEYS[k], k-2, VALUES[k])
 end
 return ''
-	`, keys, args...).Result()
+	`, []string{"-"}, args...).Result()
 	if r == "EXISTS" {
 		return ErrUniqueConflict
 	}
 	return err
 }
 
-func (s *RedisStore) ChangeGlobalStatus(global *TransGlobalStore, oldStatus string, updates []string) {
-	dbr := dbGet().Must().Model(global).Where("status=? and gid=?", oldStatus, global.Gid).Select(updates).Updates(global)
-	checkAffected(dbr)
-}
-
-func (s *RedisStore) TouchCronTime(global *TransGlobalStore, updates []string) {
-	dbGet().Must().Model(global).Where("status=? and gid=?", global.Status, global.Gid).Select(updates).Updates(global)
-}
-
-func (s *RedisStore) LockOneGlobalTrans(global *TransGlobalStore, expireIn time.Duration, updates []string) error {
-	db := dbGet()
-	getTime := dtmimp.GetDBSpecial().TimestampAdd
-	expire := int(expireIn / time.Second)
-	whereTime := fmt.Sprintf("next_cron_time < %s and update_time < %s", getTime(expire), getTime(expire-3))
-	// 这里next_cron_time需要限定范围，否则数据量累计之后，会导致查询变慢
-	// 限定update_time < now - 3，否则会出现刚被这个应用取出，又被另一个取出
-	owner := uuid.NewString()
-	dbr := db.Must().Model(global).
-		Where(whereTime+"and status in ('prepared', 'aborting', 'submitted')").Limit(1).Update("owner", owner)
-	if dbr.RowsAffected == 0 {
-		return ErrNotFound
+func (s *RedisStore) ChangeGlobalStatus(global *TransGlobalStore, newStatus string, updates []string, finished bool) {
+	old := global.Status
+	global.Status = newStatus
+	args := newArgList().AppendObject(global).AppendRaw(old).List
+	r, err := redisGet().Eval(ctx, `
+local p = ARGS[1]
+local gs = cjson.decode(ARGS[2])
+local old = redis.call('GET', p+'-g-'+gid)
+local os = cjson.decode(old)
+if (os.status ~= ARGS[3]) then
+  return 'LOCK_FAILED'
+end
+redis.call('SET', p+'-g-'+gid,  ARGS[2])
+return ''
+`, []string{"-"}, args...).Result()
+	if r != "" {
+		panic("bad result")
 	}
-	dbr = db.Must().Where("owner=?", owner).Find(global)
-	db.Must().Model(global).Select(updates).Updates(global)
+	dtmimp.PanicIf(err != nil, err)
+}
+
+func (s *RedisStore) TouchCronTime(global *TransGlobalStore, nextCronInterval int64) {
+	global.NextCronTime = common.GetNextTime(nextCronInterval)
+	global.UpdateTime = common.GetNextTime(0)
+	global.NextCronInterval = nextCronInterval
+	args := newArgList().AppendObject(global).AppendRaw(global.NextCronTime.Unix()).List
+	r, err := redisGet().Eval(ctx, `
+local p = ARGS[1]
+local g = cjson.decode(ARGS[2])
+redis.call('ZADD', p+'-u', g.gid, ARGS[3])
+redis.call('SET', p+'-g-'+g.gid, ARGS[2])
+	`, []string{"-"}, args...).Result()
+	if r != "" {
+		panic(errors.New("redis error"))
+	}
+	dtmimp.E2P(err)
+}
+
+func (s *RedisStore) LockOneGlobalTrans(global *TransGlobalStore, expireIn time.Duration) error {
+	unixNow := time.Now().Add(expireIn).Unix()
+	args := newArgList().AppendRaw(prefix).AppendRaw(unixNow).AppendRaw(common.DtmConfig.RetryInterval).List
+	r, err := redisGet().Eval(ctx, `
+local k = ARGS[1]+'-u'
+local gid = redis.call('ZRANGE', k, 0, 0)
+if (gid == '') then
+	return 'NOT_FOUND'
+end
+local g = redis.call('GET', gid)
+if (g == '') then
+	redis.call('ZREM', k, gid)
+	return 'BAD_GID'
+end
+
+redis.call('ZADD', k, gid, now+10)
+return g
+	`, []string{"-"}, args...).Result()
+	if err != nil {
+		return err
+	}
+	if r == "NOT_FOUND" {
+		return ErrNotFound
+	} else if r != "" {
+		return errors.New("ERROR")
+	}
 	return nil
 }

@@ -14,6 +14,11 @@ import (
 type SqlStore struct {
 }
 
+func (s *SqlStore) PopulateData(skipDrop bool) {
+	file := fmt.Sprintf("%s/storage.%s.sql", common.GetCallerCodeDir(), config.DB["driver"])
+	common.RunSQLScript(config.DB, file, skipDrop)
+}
+
 func (s *SqlStore) GetTransGlobal(gid string, trans *TransGlobalStore) error {
 	dbr := dbGet().Model(trans).Where("gid=?", gid).First(trans)
 	return wrapError(dbr.Error)
@@ -65,7 +70,7 @@ func (s *SqlStore) SaveNewTrans(global *TransGlobalStore, branches []TransBranch
 	})
 }
 
-func (s *SqlStore) ChangeGlobalStatus(global *TransGlobalStore, newStatus string, updates []string) {
+func (s *SqlStore) ChangeGlobalStatus(global *TransGlobalStore, newStatus string, updates []string, finished bool) {
 	old := global.Status
 	global.Status = newStatus
 	dbr := dbGet().Must().Model(global).Where("status=? and gid=?", old, global.Gid).Select(updates).Updates(global)

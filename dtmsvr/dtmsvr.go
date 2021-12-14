@@ -15,7 +15,7 @@ import (
 	"github.com/yedf/dtm/common"
 	"github.com/yedf/dtm/dtmcli/dtmimp"
 	"github.com/yedf/dtm/dtmgrpc/dtmgimp"
-	"github.com/yedf/dtm/examples"
+	"github.com/yedf/dtm/dtmsvr/storage"
 	"github.com/yedf/dtmdriver"
 	"google.golang.org/grpc"
 
@@ -59,8 +59,7 @@ func StartSvr() {
 
 // PopulateDB setup mysql data
 func PopulateDB(skipDrop bool) {
-	file := fmt.Sprintf("%s/dtmsvr.%s.sql", common.GetCallerCodeDir(), config.DB["driver"])
-	examples.RunSQLScript(config.DB, file, skipDrop)
+	storage.GetStore().PopulateData(skipDrop)
 }
 
 // UpdateBranchAsyncInterval interval to flush branch

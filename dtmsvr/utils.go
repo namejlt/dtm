@@ -26,7 +26,7 @@ var e2p = dtmimp.E2P
 
 var config = &common.DtmConfig
 
-func getStore() *storage.SqlStore {
+func getStore() storage.Store {
 	return storage.GetStore()
 }
 

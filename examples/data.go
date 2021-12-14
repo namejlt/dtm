@@ -8,32 +8,12 @@ package examples
 
 import (
 	"fmt"
-	"io/ioutil"
-	"strings"
 
 	"github.com/yedf/dtm/common"
 	"github.com/yedf/dtm/dtmcli/dtmimp"
 )
 
 var config = &common.DtmConfig
-
-// RunSQLScript 1
-func RunSQLScript(conf map[string]string, script string, skipDrop bool) {
-	con, err := dtmimp.StandaloneDB(conf)
-	dtmimp.FatalIfError(err)
-	defer func() { con.Close() }()
-	content, err := ioutil.ReadFile(script)
-	dtmimp.FatalIfError(err)
-	sqls := strings.Split(string(content), ";")
-	for _, sql := range sqls {
-		s := strings.TrimSpace(sql)
-		if s == "" || (skipDrop && strings.Contains(s, "drop")) {
-			continue
-		}
-		_, err = dtmimp.DBExec(con, s)
-		dtmimp.FatalIfError(err)
-	}
-}
 
 func resetXaData() {
 	if config.DB["driver"] != "mysql" {
@@ -55,9 +35,9 @@ func resetXaData() {
 func PopulateDB(skipDrop bool) {
 	resetXaData()
 	file := fmt.Sprintf("%s/examples.%s.sql", common.GetCallerCodeDir(), config.DB["driver"])
-	RunSQLScript(config.DB, file, skipDrop)
+	common.RunSQLScript(config.DB, file, skipDrop)
 	file = fmt.Sprintf("%s/../dtmcli/barrier.%s.sql", common.GetCallerCodeDir(), config.DB["driver"])
-	RunSQLScript(config.DB, file, skipDrop)
+	common.RunSQLScript(config.DB, file, skipDrop)
 }
 
 type sampleInfo struct {
