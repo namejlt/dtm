@@ -24,6 +24,9 @@ func (s *RedisStore) PopulateData(skipDrop bool) {
 
 func (s *RedisStore) GetTransGlobal(gid string, trans *TransGlobalStore) error {
 	r, err := redisGet().Get(ctx, prefix+"_g_"+gid).Result()
+	if err == redis.Nil {
+		return ErrNotFound
+	}
 	if err != nil {
 		return err
 	}
@@ -75,19 +78,23 @@ func (a *argList) AppendBranches(branches []TransBranchStore) *argList {
 	return a
 }
 
-func callLua(args []interface{}, lua string) (string, error) {
-	dtmimp.Logf("calling lua. args: %v\nlua:%s", args, lua)
-	r, err := redisGet().Eval(ctx, lua, []string{"-"}, args...).Result()
-	dtmimp.Logf("result is: '%v', err: '%v'", r, err)
+func handleRedisResult(ret interface{}, err error) (string, error) {
+	dtmimp.Logf("result is: '%v', err: '%v'", ret, err)
 	if err != nil && err != redis.Nil {
 		return "", err
 	}
-	s, _ := r.(string)
+	s, _ := ret.(string)
 	err = map[string]error{
 		"NOT_FOUND":       ErrNotFound,
 		"UNIQUE_CONFLICT": ErrUniqueConflict,
 	}[s]
 	return s, err
+}
+
+func callLua(args []interface{}, lua string) (string, error) {
+	dtmimp.Logf("calling lua. args: %v\nlua:%s", args, lua)
+	ret, err := redisGet().Eval(ctx, lua, []string{"-"}, args...).Result()
+	return handleRedisResult(ret, err)
 }
 
 func (s *RedisStore) SaveNewTrans(global *TransGlobalStore, branches []TransBranchStore) error {
