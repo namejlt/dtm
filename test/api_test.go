@@ -41,10 +41,6 @@ func TestAPIQuery(t *testing.T) {
 }
 
 func TestAPIAll(t *testing.T) {
-	_, err := dtmimp.RestyClient.R().Get(examples.DtmHttpServer + "/all")
+	_, err := dtmimp.RestyClient.R().SetQueryParam("limit", "2").Get(examples.DtmHttpServer + "/all")
 	assert.Nil(t, err)
-	_, err = dtmimp.RestyClient.R().SetQueryParam("last_id", "10").Get(examples.DtmHttpServer + "/all")
-	assert.Nil(t, err)
-	resp, err := dtmimp.RestyClient.R().SetQueryParam("last_id", "abc").Get(examples.DtmHttpServer + "/all")
-	assert.Equal(t, resp.StatusCode(), 500)
 }

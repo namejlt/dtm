@@ -8,12 +8,11 @@ package dtmsvr
 
 import (
 	"errors"
-	"math"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yedf/dtm/common"
 	"github.com/yedf/dtm/dtmcli"
-	"github.com/yedf/dtm/dtmcli/dtmimp"
+	"github.com/yedf/dtm/dtmsvr/storage"
 )
 
 func addRoute(engine *gin.Engine) {
@@ -69,11 +68,7 @@ func query(c *gin.Context) (interface{}, error) {
 
 func all(c *gin.Context) (interface{}, error) {
 	lastID := c.Query("last_id")
-	lid := math.MaxInt64
-	if lastID != "" {
-		lid = dtmimp.MustAtoi(lastID)
-	}
-	trans := []TransGlobal{}
-	getStore().GetTransGlobals(lid, &trans)
-	return map[string]interface{}{"transactions": trans}, nil
+	trans := []storage.TransGlobalStore{}
+	getStore().GetTransGlobals(&lastID, &trans)
+	return map[string]interface{}{"transactions": trans, "last_id": lastID}, nil
 }

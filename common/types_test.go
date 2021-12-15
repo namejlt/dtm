@@ -13,8 +13,17 @@ import (
 	"github.com/yedf/dtm/dtmcli/dtmimp"
 )
 
-func TestDb(t *testing.T) {
+func TestGeneralDB(t *testing.T) {
 	MustLoadConfig()
+	if DtmConfig.DB["driver"] == "redis" {
+
+	} else {
+		testSql(t)
+		testWaitDBUp(t)
+		testDbAlone(t)
+	}
+}
+func testSql(t *testing.T) {
 	db := DbGet(DtmConfig.DB)
 	err := func() (rerr error) {
 		defer dtmimp.P2E(&rerr)
@@ -26,11 +35,11 @@ func TestDb(t *testing.T) {
 	assert.NotEqual(t, nil, err)
 }
 
-func TestWaitDBUp(t *testing.T) {
+func testWaitDBUp(t *testing.T) {
 	WaitDBUp()
 }
 
-func TestDbAlone(t *testing.T) {
+func testDbAlone(t *testing.T) {
 	db, err := dtmimp.StandaloneDB(DtmConfig.DB)
 	assert.Nil(t, err)
 	_, err = dtmimp.DBExec(db, "select 1")

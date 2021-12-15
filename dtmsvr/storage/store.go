@@ -15,7 +15,7 @@ var ErrUniqueConflict = errors.New("storage: UniqueKeyConflict")
 type Store interface {
 	PopulateData(skipDrop bool)
 	GetTransGlobal(gid string, trans *TransGlobalStore) error
-	GetTransGlobals(lid int, globals interface{})
+	GetTransGlobals(lastID *string, globals *[]TransGlobalStore)
 	GetBranches(gid string) []TransBranchStore
 	UpdateBranches(branches []TransBranchStore, updates []string) *gorm.DB
 	LockGlobalSaveBranches(gid string, status string, branches []TransBranchStore, branchStart int) error

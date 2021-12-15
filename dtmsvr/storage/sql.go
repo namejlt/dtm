@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,8 +25,17 @@ func (s *SqlStore) GetTransGlobal(gid string, trans *TransGlobalStore) error {
 	return wrapError(dbr.Error)
 }
 
-func (s *SqlStore) GetTransGlobals(lid int, globals interface{}) {
-	dbGet().Must().Where("id < ?", lid).Order("id desc").Limit(100).Find(globals)
+func (s *SqlStore) GetTransGlobals(lastID *string, globals *[]TransGlobalStore) {
+	lid := math.MaxInt64
+	if *lastID != "" {
+		lid = dtmimp.MustAtoi(*lastID)
+	}
+	dbr := dbGet().Must().Where("id < ?", lid).Order("id desc").Limit(100).Find(globals)
+	if dbr.RowsAffected == 0 {
+		*lastID = ""
+	} else {
+		*lastID = fmt.Sprintf("%d", (*globals)[len(*globals)-1].ID)
+	}
 }
 
 func (s *SqlStore) GetBranches(gid string) []TransBranchStore {

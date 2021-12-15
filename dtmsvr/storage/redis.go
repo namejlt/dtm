@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -34,8 +35,21 @@ func (s *RedisStore) GetTransGlobal(gid string, trans *TransGlobalStore) error {
 	return nil
 }
 
-func (s *RedisStore) GetTransGlobals(lid int, globals interface{}) {
-	panic("not implemented")
+func (s *RedisStore) GetTransGlobals(lastID *string, globals *[]TransGlobalStore) {
+	lid := uint64(0)
+	if *lastID != "" {
+		lid = uint64(dtmimp.MustAtoi(*lastID))
+	}
+	keys, cursor, err := redisGet().Scan(ctx, lid, prefix+"_g_*", 100).Result()
+	dtmimp.E2P(err)
+	*lastID = fmt.Sprintf("%d", cursor)
+	values, err := redisGet().MGet(ctx, keys...).Result()
+	dtmimp.E2P(err)
+	for _, v := range values {
+		global := TransGlobalStore{}
+		dtmimp.MustUnmarshalString(v.(string), &global)
+		*globals = append(*globals, global)
+	}
 }
 
 func (s *RedisStore) GetBranches(gid string) []TransBranchStore {
