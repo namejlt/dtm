@@ -8,12 +8,15 @@ package common
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/yedf/dtm/dtmcli/dtmimp"
 )
 
@@ -102,4 +105,21 @@ func checkConfig() error {
 		return errors.New("TimeoutToFail should not be less than RetryInterval")
 	}
 	return nil
+}
+
+func GetDriver() string {
+	return DtmConfig.DB["driver"]
+}
+
+var rdb *redis.Client
+var once sync.Once
+
+func RedisGet() *redis.Client {
+	once.Do(func() {
+		rdb = redis.NewClient(&redis.Options{
+			Addr:     fmt.Sprintf("%s:%s", DtmConfig.DB["host"], DtmConfig.DB["port"]),
+			Password: DtmConfig.DB["password"],
+		})
+	})
+	return rdb
 }

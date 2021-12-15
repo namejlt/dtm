@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/yedf/dtm/common"
@@ -21,15 +20,6 @@ func checkAffected(db1 *gorm.DB) {
 	}
 }
 
-var rdb *redis.Client
-var once sync.Once
-
 func redisGet() *redis.Client {
-	once.Do(func() {
-		rdb = redis.NewClient(&redis.Options{
-			Addr:     fmt.Sprintf("%s:%s", config.DB["host"], config.DB["port"]),
-			Password: config.DB["password"],
-		})
-	})
-	return rdb
+	return common.RedisGet()
 }

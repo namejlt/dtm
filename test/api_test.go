@@ -21,7 +21,7 @@ func TestAPIQuery(t *testing.T) {
 	assert.Nil(t, err)
 	waitTransProcessed(gidTestAPI)
 	resp, err := dtmimp.RestyClient.R().SetQueryParam("gid", gidTestAPI).Get(examples.DtmHttpServer + "/query")
-	e2p(err)
+	assert.Nil(t, err)
 	m := map[string]interface{}{}
 	assert.Equal(t, resp.StatusCode(), 200)
 	dtmimp.MustUnmarshalString(resp.String(), &m)

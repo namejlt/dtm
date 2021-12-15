@@ -19,7 +19,6 @@ func TestGeneralDB(t *testing.T) {
 
 	} else {
 		testSql(t)
-		testWaitDBUp(t)
 		testDbAlone(t)
 	}
 }
@@ -35,7 +34,7 @@ func testSql(t *testing.T) {
 	assert.NotEqual(t, nil, err)
 }
 
-func testWaitDBUp(t *testing.T) {
+func TestWaitDBUp(t *testing.T) {
 	WaitDBUp()
 }
 
