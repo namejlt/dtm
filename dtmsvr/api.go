@@ -51,7 +51,6 @@ func svcAbort(t *TransGlobal) (interface{}, error) {
 }
 
 func svcRegisterBranch(transType string, branch *TransBranch, data map[string]string) (ret interface{}, rerr error) {
-	branch.Position = -1
 	branches := []TransBranch{*branch, *branch}
 	if transType == "tcc" {
 		for i, b := range []string{dtmcli.BranchCancel, dtmcli.BranchConfirm} {

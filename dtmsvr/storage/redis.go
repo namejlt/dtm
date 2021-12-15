@@ -120,8 +120,9 @@ func (s *RedisStore) SaveNewTrans(global *TransGlobalStore, branches []TransBran
 		AppendRaw(global.NextCronTime.Unix()).
 		AppendBranches(branches).
 		List
-
-	_, err := callLua(args, `
+	global.Steps = nil
+	global.Payloads = nil
+	_, err := callLua(args, `-- SaveNewTrans
 local gs = cjson.decode(ARGV[2])
 local g = redis.call('GET', ARGV[1] .. '_g_' .. gs.gid)
 if g ~= false then
@@ -170,7 +171,7 @@ func (s *RedisStore) ChangeGlobalStatus(global *TransGlobalStore, newStatus stri
 	old := global.Status
 	global.Status = newStatus
 	args := newArgList().AppendObject(global).AppendRaw(old).AppendRaw(finished).List
-	_, err := callLua(args, `
+	_, err := callLua(args, `-- ChangeGlobalStatus
 local p = ARGV[1]
 local gs = cjson.decode(ARGV[2])
 local old = redis.call('GET', p .. '_g_' .. gs.gid)
@@ -194,7 +195,7 @@ func (s *RedisStore) LockOneGlobalTrans(global *TransGlobalStore, expireIn time.
 	expired := time.Now().Add(expireIn).Unix()
 	next := time.Now().Add(time.Duration(config.RetryInterval) * time.Second).Unix()
 	args := newArgList().AppendRaw(expired).AppendRaw(next).List
-	r, err := callLua(args, `
+	r, err := callLua(args, `-- LocakOneGlobalTrans
 local k = ARGV[1] .. '_u'
 local r = redis.call('ZRANGE', k, 0, 0, 'WITHSCORES')
 local gid = r[1]
@@ -225,7 +226,7 @@ func (s *RedisStore) TouchCronTime(global *TransGlobalStore, nextCronInterval in
 	global.UpdateTime = common.GetNextTime(0)
 	global.NextCronInterval = nextCronInterval
 	args := newArgList().AppendObject(global).AppendRaw(global.NextCronTime.Unix()).List
-	_, err := callLua(args, `
+	_, err := callLua(args, `-- TouchCronTime
 local p = ARGV[1]
 local g = cjson.decode(ARGV[2])
 redis.call('ZADD', p .. '_u', ARGV[3], g.gid)

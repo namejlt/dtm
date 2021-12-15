@@ -20,11 +20,11 @@ type TransGlobalStore struct {
 	CommitTime       *time.Time          `json:"commit_time,omitempty"`
 	FinishTime       *time.Time          `json:"finish_time,omitempty"`
 	RollbackTime     *time.Time          `json:"rollback_time,omitempty"`
-	Options          string
-	CustomData       string     `json:"custom_data,omitempty"`
-	NextCronInterval int64      `json:"next_cron_interval,omitempty"`
-	NextCronTime     *time.Time `json:"next_cron_time,omitempty"`
-	Owner            string     `json:"owner,omitempty"`
+	Options          string              `json:"options,omitempty"`
+	CustomData       string              `json:"custom_data,omitempty"`
+	NextCronInterval int64               `json:"next_cron_interval,omitempty"`
+	NextCronTime     *time.Time          `json:"next_cron_time,omitempty"`
+	Owner            string              `json:"owner,omitempty"`
 	dtmcli.TransOptions
 }
 
@@ -44,7 +44,6 @@ type TransBranchStore struct {
 	Status       string     `json:"status,omitempty"`
 	FinishTime   *time.Time `json:"finish_time,omitempty"`
 	RollbackTime *time.Time `json:"rollback_time,omitempty"`
-	Position     int        `json:"position"` // redis can use it as list index. -1 indicate to append
 }
 
 // TableName TableName
